@@ -231,6 +231,7 @@ const POSE_MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmar
 let stream = null, session = 0, opening = false, modelTask = null, tracker = null;
 let calibrating = false, calibration = createCalibration(), controller = createBodyController();
 let currentInput = null, lastPoseAt = -Infinity, lastValidAt = -Infinity, lastVideoTime = -1;
+let deviceListRequest = 0;
 
 function cameraStatus(message, error = false) {
   $('cameraStatus').textContent = message;
@@ -242,6 +243,7 @@ function updateSetup() {
   $('calibrate').disabled = !stream || !tracker || calibrating;
   $('startBody').disabled = !ready || calibrating;
   $('cameraButton').disabled = opening;
+  $('refreshDevices').disabled = opening;
   $('cameraButton').textContent = stream ? '关闭摄像头' : '开启摄像头';
   $('cameraEmpty').hidden = Boolean(stream);
   preview.hidden = !stream;
@@ -264,6 +266,7 @@ function resetBodyInput() {
 
 function closeCamera() {
   session++;
+  deviceListRequest++;
   opening = false;
   stream?.getTracks().forEach(track => track.stop());
   stream = null;
@@ -275,15 +278,20 @@ function closeCamera() {
   updateSetup();
 }
 
-async function listCameras(currentId) {
-  const cameras = (await navigator.mediaDevices.enumerateDevices()).filter(item => item.kind === 'videoinput');
-  if (!stream || stream.getVideoTracks()[0].getSettings().deviceId !== currentId) return;
+async function listCameras(currentId = stream?.getVideoTracks()[0]?.getSettings().deviceId) {
+  if (!navigator.mediaDevices?.enumerateDevices) return [];
+  const request = ++deviceListRequest;
+  const cameras = (await navigator.mediaDevices.enumerateDevices()).filter(item =>
+    item.kind === 'videoinput' && item.deviceId);
+  if (request !== deviceListRequest) return [];
+  const selected = currentId || device.value;
   device.replaceChildren(new Option('系统默认摄像头', ''));
   for (const [i, camera] of cameras.entries()) {
-    if (camera.deviceId) device.add(new Option(camera.label || '视频输入 ' + (i + 1), camera.deviceId));
+    device.add(new Option(camera.label || '视频输入 ' + (i + 1), camera.deviceId));
   }
-  device.value = cameras.some(camera => camera.deviceId && camera.deviceId === currentId) ? currentId : '';
-  device.disabled = !cameras.some(camera => camera.deviceId);
+  device.value = cameras.some(camera => camera.deviceId === selected) ? selected : '';
+  device.disabled = cameras.length === 0;
+  return cameras;
 }
 
 function startPoseModel(root) {
@@ -342,11 +350,15 @@ async function openCamera() {
   cameraStatus('等待摄像头权限…');
   let candidate;
   try {
-    candidate = await navigator.mediaDevices.getUserMedia({
-      audio:false,
-      video:{width:{ideal:1280}, height:{ideal:720}, frameRate:{ideal:30,max:30},
-        ...(selected ? {deviceId:{exact:selected}} : {})}
-    });
+    const input = selected ? {deviceId:{exact:selected}} : {};
+    try {
+      candidate = await navigator.mediaDevices.getUserMedia({
+        audio:false, video:{...input, width:{ideal:1280}, height:{ideal:720}, frameRate:{ideal:30}}
+      });
+    } catch (error) {
+      if (session !== token || !['OverconstrainedError','NotReadableError','AbortError'].includes(error.name)) throw error;
+      candidate = await navigator.mediaDevices.getUserMedia({audio:false, video:input});
+    }
     if (session !== token) {
       candidate.getTracks().forEach(track => track.stop());
       return;
@@ -354,7 +366,17 @@ async function openCamera() {
     stream = candidate;
     const track = stream.getVideoTracks()[0];
     video.srcObject = stream;
-    await video.play();
+    let playTimeout;
+    try {
+      await Promise.race([
+        video.play(),
+        new Promise((_, reject) => {
+          playTimeout = setTimeout(() => reject(new DOMException('视频没有开始播放', 'NotReadableError')), 8000);
+        })
+      ]);
+    } finally {
+      clearTimeout(playTimeout);
+    }
     if (session !== token) return;
     track.addEventListener('ended', () => {
       if (stream !== candidate) return;
@@ -376,9 +398,14 @@ async function openCamera() {
   } catch (error) {
     if (session !== token) return;
     closeCamera();
-    const message = error.name === 'NotAllowedError' ? '摄像头权限未开启。请在浏览器允许后重试。' :
-      '无法打开这个视频输入。检查相机是否在 Webcam 模式，或选择另一个摄像头。';
-    cameraStatus(message, true);
+    listCameras().catch(() => {});
+    const messages = {
+      NotAllowedError:'摄像头权限未开启。请允许 Chrome 访问相机和本页摄像头，再重试。',
+      NotFoundError:'Chrome 找不到所选摄像头。确认 DJI 屏幕显示 Webcam，刷新设备后再选择。',
+      NotReadableError:'Chrome 找到了摄像头，但读不到画面。退出占用摄像头的应用，再重试。',
+      AbortError:'视频输入未能启动。重新插拔 DJI 数据线，进入 Webcam 模式后重试。'
+    };
+    cameraStatus(messages[error.name] || '无法开启视频输入。请刷新设备并重新选择摄像头。', true);
   }
 }
 
@@ -507,9 +534,24 @@ $('cameraButton').onclick = () => {
     cameraStatus('摄像头已关闭。');
   } else openCamera();
 };
-device.onchange = openCamera;
+listCameras().catch(() => {});
+device.onchange = () => {
+  if (stream) openCamera();
+};
+$('refreshDevices').onclick = async () => {
+  try {
+    const cameras = await listCameras();
+    if (!stream && !opening) {
+      cameraStatus(cameras.some(camera => camera.label)
+        ? '设备列表已刷新。选择视频输入后，点击开启摄像头。'
+        : '请先开启摄像头并允许权限。Chrome 获得权限后会显示设备名称。');
+    }
+  } catch {
+    if (!opening) cameraStatus('无法读取设备列表。请用独立 Chrome 打开本页。', true);
+  }
+};
 navigator.mediaDevices?.addEventListener('devicechange', () => {
-  if (stream) listCameras(stream.getVideoTracks()[0].getSettings().deviceId).catch(() => {});
+  listCameras().catch(() => {});
 });
 $('calibrate').onclick = () => {
   calibrating = true;

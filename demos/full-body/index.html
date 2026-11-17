@@ -76,7 +76,7 @@ dialog::backdrop{background:#152e40ad}
         <div><dt>抓薯条</dt><dd>靠近薯条盒时保持半蹲</dd></div>
         <div><dt>回巢</dt><dd>抓到薯条后从半蹲站直</dd></div>
       </dl>
-      <p>DJI Osmo Pocket 4P 可用 USB-C 数据线连接电脑，在相机上选 <strong>Webcam</strong>。开启后在右侧选择相应的视频输入。</p>
+      <p>用 USB-C 数据线连接 DJI Osmo Pocket 4P，在相机上选 <strong>Webcam</strong>。用 Chrome 打开本页并允许摄像头权限，然后在视频输入中选择 DJI。</p>
       <div class="controls">
         <button class="primary" id="startBody" type="button" disabled>开始体感</button>
         <button id="startKeyboard" type="button">键盘试玩</button>
@@ -92,7 +92,10 @@ dialog::backdrop{background:#152e40ad}
         <button id="calibrate" type="button" disabled>校准站姿</button>
       </div>
       <label for="device">视频输入</label>
-      <select id="device" disabled><option value="">系统默认摄像头</option></select>
+      <div class="controls">
+        <select id="device" disabled><option value="">系统默认摄像头</option></select>
+        <button id="refreshDevices" type="button">刷新设备</button>
+      </div>
       <div id="cameraMeta" hidden></div>
       <progress id="progress" value="0" max="1" aria-label="校准进度" hidden></progress>
       <p id="cameraStatus" role="status">首次使用体感需要联网加载姿态识别模型。</p>
@@ -122,6 +125,6 @@ dialog::backdrop{background:#152e40ad}
 </dialog>
 <script src="harbor.js?v=1"></script>
 <script src="pose-controls.js?v=1"></script>
-<script src="demo.js?v=1"></script>
+<script src="demo.js?v=2"></script>
 </body>
 </html>
