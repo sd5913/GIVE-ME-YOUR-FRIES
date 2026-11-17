@@ -1,0 +1,1516 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GIVE ME YOUR FRIES! · 海鸥俯冲</title>
+<style>
+:root {
+  color-scheme: dark;
+  --ink:#102c3a;
+  --paper:#fff3d6;
+  --yellow:#ffd578;
+  --line:#d2e4e957;
+  font-family:"DM Sans",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+* { box-sizing:border-box }
+[hidden] { display:none!important }
+body { margin:0; background:#0e2d3a; color:var(--paper) }
+button,select { font:inherit }
+button { color:inherit; cursor:pointer }
+button:disabled { opacity:.42; cursor:default }
+button:focus-visible,select:focus-visible { outline:3px solid #83f2d5; outline-offset:4px }
+button:not(:disabled):hover { filter:brightness(1.12) }
+#stage { position:relative; min-height:100dvh; display:grid; align-content:center; overflow:hidden; padding:76px clamp(18px,5.5vw,84px) 30px; isolation:isolate }
+#flight,.shade { position:absolute; inset:0; width:100%;height:100%;z-index:-2 }
+#flight { object-fit:cover }
+.shade { z-index:-1; pointer-events:none; background:linear-gradient(180deg,#122b465c,transparent 17%,transparent 63%,#102c3a8c) }
+[data-phase=setup] .shade { background:linear-gradient(90deg,#0c243c78,transparent),linear-gradient(0deg,#133344b8,transparent 53%) }
+.chrome { position:absolute; z-index:4; top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center; gap:12px;padding:18px clamp(16px,4vw,58px) }
+.wordmark { font-weight:1000; font-size:clamp(13px,2.1vw,25px); letter-spacing:-.045em; text-shadow:0 2px 7px #15364d }
+.wordmark em { font-style:normal;color:var(--yellow) }
+.tools,.start-buttons,.camera-buttons { display:flex;gap:9px;flex-wrap:wrap }
+.tools button,.camera-buttons button,.secondary,select { min-height:42px; padding:7px 13px; border:1px solid var(--line);border-radius:9px;background:#122d3ee8;font-weight:750 }
+.tools button { min-height:36px;font-size:14px }
+.tools button[aria-pressed=true] { text-decoration:line-through }
+.sheet { width:min(100%,980px); margin:auto;display:grid;grid-template-columns:1fr minmax(255px,.83fr);gap:clamp(18px,4.5vw,60px);padding:clamp(22px,4vw,50px);border:1px solid #e8f3ed73;border-radius:24px;background:#0e2d3af5;box-shadow:0 24px 70px #142b5249 }
+.setup-copy { align-self:center }
+h1,h2,p,dl,dd { margin:0 }
+h1 { font-weight:950;font-size:clamp(40px,7vw,88px); letter-spacing:-.085em;line-height:1 }
+h1 span { color:var(--yellow); font-size:clamp(19px,3vw,32px);letter-spacing:-.055em; display:block;margin-top:15px }
+.intro { margin-top:20px; color:#e1edeb;line-height:1.65; max-width:33ch }
+.controls-guide { display:grid;grid-template-columns:repeat(2,1fr); gap:8px;margin:23px 0 }
+.controls-guide div { border-top:1px solid #c1e0e96b;padding-top:11px }
+.controls-guide dt { font-weight:850 }
+.controls-guide dd { font-size:13px;margin-top:3px;color:#b2ced3 }
+.primary,.secondary { padding:11px 17px; font-weight:850; border-radius:9px }
+.primary { background:var(--yellow);color:#112d3a;border:1px solid #fff2bd;box-shadow:0 2px 0 #715628 }
+.secondary { background:#234759 }
+.keys { font-size:12px;margin-top:14px;color:#c1dbdf; line-height:1.8 }
+kbd { font-family:inherit;border:1px solid #9fb5b979;padding:1px 4px;border-radius:4px;white-space:nowrap }
+.camera-panel { display:grid;gap:9px;align-content:start;padding:13px;background:#153949;border:1px solid var(--line);border-radius:15px;min-width:0 }
+.preview { background:#0b2634;aspect-ratio:16/9;position:relative;display:grid;place-items:center;border-radius:9px;overflow:hidden }
+.preview canvas { position:absolute;inset:0;width:100%;height:100% }
+.frame-guide { position:absolute;width:52%;height:81%;border:1px dashed #ddf0da66;border-radius:30% 30% 12% 12%;pointer-events:none }
+#previewEmpty { position:relative;padding:6px 11px;background:#0b2634;color:#b9d5d8;border-radius:6px }
+.camera-panel label { font-size:12px;font-weight:750;color:#c1dbdf }
+select { max-width:100%;color:var(--paper); background:#0e2b39 }
+.status { color:#d3e6e5;font-size:13px;line-height:1.5;min-height:39px }
+.status.error { color:#ffd4ba }
+progress { width:100%;accent-color:#ffd578 }
+.hud { position:absolute;inset:0;pointer-events:none;text-align:center }
+.hud-stats { display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:start;padding:78px clamp(16px,4vw,58px) 0 }
+.hud-stats > div:first-child,.carry { justify-self:start;display:flex;gap:16px;padding:8px 13px;background:#0a2739df;border:1px solid var(--line);border-radius:12px;font-weight:700 }
+.hud-stats b { color:var(--yellow) }
+.hud-stats .carry { grid-column:3;justify-self:end }
+.timer { grid-column:2;background:#163242f0;border:1px solid #ffd578b3;border-radius:15px;color:var(--yellow);justify-self:center;padding:7px 24px;box-shadow:0 4px 18px #12273978 }
+.timer small { display:block;font-size:13px;white-space:nowrap;font-weight:800 }
+.timer strong { font-weight:950;font-variant-numeric:tabular-nums;font-size:clamp(36px,6vw,68px);line-height:1 }
+.timer.urgent { background:#942c36;color:#fff4d6;border-color:#ffb6a8 }
+.cue { position:absolute;bottom:clamp(20px,6vh,48px);left:50%;transform:translateX(-50%);min-width:min(460px,86vw);max-width:92vw;border:1px solid #e9f4ef76;border-radius:18px;padding:10px clamp(16px,3vw,36px);background:#0e2d3af2;box-shadow:0 8px 36px #0e29353d }
+.cue p { color:var(--yellow);font-size:clamp(25px,4.1vw,52px);font-weight:950;line-height:1.15;white-space:nowrap;letter-spacing:-.045em }
+.cue span { display:block;margin-top:6px;color:#e5efec;font-size:clamp(13px,1.75vw,19px);line-height:1.4 }
+#motionStatus { position:absolute;inset:31% auto auto 50%;transform:translateX(-50%);width:max-content;max-width:90%;background:#152f3ef2;border:2px solid #ffe0a4;border-radius:15px;padding:13px 20px;font-size:clamp(17px,3vw,30px);font-weight:850 }
+#reaction { position:absolute;top:20%;right:5%;color:#fff1cc;background:#9b303bf2;border:2px solid #ffe0a4;border-radius:12px;padding:5px 15px;font-size:clamp(27px,5vw,62px);font-weight:950 }
+#reaction.success,[data-phase=hit] #reaction { right:50%;transform:translateX(50%) }
+#reaction.success { background:#244e5c;color:#ffed9c }
+.result { text-align:center;width:min(480px,100%);justify-self:center;padding:32px 16px;background:#0b293bea;border:1px solid var(--line);border-radius:22px;box-shadow:0 16px 70px #112f52a1 }
+.result-label { color:var(--yellow);font-weight:850;letter-spacing:.12em }
+.result h2 { margin-top:9px;font-size:clamp(32px,6vw,62px);line-height:1.08;letter-spacing:-.065em }
+#resultText { margin:14px 0 23px;color:#e3edeb;line-height:1.5 }
+.result .start-buttons { justify-content:center }
+@media (max-width:660px) {
+  #stage { padding:66px 15px 17px }
+  .sheet { grid-template-columns:1fr;gap:16px;padding:18px }
+  .intro { margin-top:12px }
+  .controls-guide { margin:14px 0 }
+  .chrome { padding:14px 12px }
+  .tools { gap:5px }
+  .tools button { padding:5px 8px }
+  .hud-stats { padding:62px 12px 0;gap:6px }
+  .hud-stats > div:first-child { display:grid;gap:3px;text-align:left }
+  .timer { padding:7px 12px }
+}
+</style>
+</head>
+<body>
+<main id="stage" data-phase="setup" aria-label="海鸥俯冲">
+  <canvas id="flight" width="1280" height="720" aria-label="第一人称码头，屏幕两侧是海鸥的翅膀"></canvas>
+  <div class="shade"></div>
+  <div class="chrome">
+    <span class="wordmark">GIVE ME YOUR <em>FRIES!</em></span>
+    <div class="tools">
+      <button id="settings" type="button" hidden>设置</button>
+      <button id="sound" type="button" aria-pressed="false">声音</button>
+      <button id="fullscreen" type="button">全屏</button>
+    </div>
+  </div>
+
+  <section id="setup" class="sheet" aria-labelledby="title">
+    <div class="setup-copy">
+      <h1 id="title">海鸥俯冲<span>抢薯条，飞回巢。</span></h1>
+      <p class="intro">收翅俯冲，伸手握拳抢薯条。抢到第二根后，赶在游客挥伞前展翅逃跑。</p>
+      <dl class="controls-guide">
+        <div><dt>拍翅</dt><dd>起飞和拉升</dd></div>
+        <div><dt>侧倾</dt><dd>转向或快速闪避</dd></div>
+        <div><dt>收翅</dt><dd>俯冲到薯条旁</dd></div>
+        <div><dt>张手再握拳</dt><dd>每次抓一根</dd></div>
+      </dl>
+      <div class="start-buttons">
+        <button id="bodyStart" type="button" class="primary" disabled>开始体感</button>
+        <button id="keyboardStart" type="button" class="secondary">键盘试玩</button>
+      </div>
+      <p class="keys"><kbd>W</kbd> / <kbd>空格</kbd> 拍翅、逃跑　<kbd>A</kbd> <kbd>D</kbd> 转向　<kbd>S</kbd> 俯冲<br><kbd>E</kbd> 张爪　<kbd>F</kbd> 抓取　<kbd>Shift</kbd> + <kbd>A</kbd> / <kbd>D</kbd> 闪避</p>
+    </div>
+    <div class="camera-panel">
+      <div id="preview" class="preview">
+        <canvas id="previewCanvas" width="640" height="360" aria-label="镜像摄像头预览" hidden></canvas>
+        <div class="frame-guide" aria-hidden="true"></div>
+        <p id="previewEmpty">摄像头预览</p>
+      </div>
+      <label for="device">视频输入</label>
+      <select id="device"><option value="">系统默认摄像头</option></select>
+      <div class="camera-buttons">
+        <button id="cameraButton" type="button">开启摄像头</button>
+        <button id="calibrate" type="button" disabled>校准站位</button>
+      </div>
+      <p id="cameraStatus" class="status" role="status">用 USB 连接 DJI 并选 Webcam，开启后在上方选择对应输入。</p>
+      <progress id="calibrationProgress" value="0" max="1" aria-label="校准进度" hidden></progress>
+    </div>
+  </section>
+
+  <div id="hud" class="hud" hidden>
+    <div class="hud-stats">
+      <div><span>第 <b id="round">1</b> 趟</span><span>巢内 <b id="score">0</b></span></div>
+      <div id="timePanel" class="timer" hidden><small>回巢倒计时</small><strong id="timeText">8.0</strong></div>
+      <div id="load" class="carry" hidden>爪上 <b id="carry">0</b></div>
+    </div>
+    <div id="motionStatus" role="status" hidden>请让肩膀和髋部重新入镜</div>
+    <div id="reaction" role="status" hidden></div>
+    <div class="cue" id="cue">
+      <p id="cueText" role="status"></p><span id="cueDetail"></span>
+    </div>
+  </div>
+  <section id="result" class="result" aria-labelledby="resultTitle" hidden>
+    <p class="result-label">码头飞行</p>
+    <h2 id="resultTitle"></h2>
+    <p id="resultText"></p>
+    <div class="start-buttons">
+      <button id="again" type="button" class="primary">再飞一趟</button>
+      <button id="back" type="button" class="secondary">返回设置</button>
+    </div>
+  </section>
+</main>
+<script>
+'use strict';
+
+const canvas = document.getElementById('flight');
+const paint = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const TAU = Math.PI * 2;
+const ink = '#243e52';
+const routeX = side => side * 124;
+const TRAY_Z = 720, NEST_Z = 1985;
+const APPROACH_LIMIT = TRAY_Z-293;
+const limit = (value, min, max) => Math.max(min, Math.min(max, value));
+const smooth = (value, target, dt, response = 8) => value + (target - value) * (1 - Math.exp(-response * dt));
+const isLinedUp = game => Math.abs(routeX(game.target)-game.x)<=53;
+
+function oval(x, y, rx, ry, color, stroke, width = 2) {
+  paint.beginPath();
+  paint.ellipse(x, y, rx, ry, 0, 0, TAU);
+  paint.fillStyle = color;
+  paint.fill();
+  if (stroke) {
+    paint.strokeStyle = stroke;
+    paint.lineWidth = width;
+    paint.stroke();
+  }
+}
+
+function shape(points, color, stroke, width = 2) {
+  paint.beginPath();
+  points.forEach(([x,y], index) => index ? paint.lineTo(x,y) : paint.moveTo(x,y));
+  paint.closePath();
+  paint.fillStyle = color;
+  paint.fill();
+  if (stroke) {
+    paint.strokeStyle = stroke;
+    paint.lineWidth = width;
+    paint.stroke();
+  }
+}
+
+function line(points, color, width) {
+  paint.beginPath();
+  points.forEach(([x,y], index) => index ? paint.lineTo(x,y) : paint.moveTo(x,y));
+  paint.strokeStyle = color;
+  paint.lineWidth = width;
+  paint.lineCap = 'round';
+  paint.lineJoin = 'round';
+  paint.stroke();
+}
+
+function textAt(text, x, y, size, color, align = 'center') {
+  paint.font = '900 ' + size + 'px system-ui, sans-serif';
+  paint.textAlign = align;
+  paint.textBaseline = 'middle';
+  paint.fillStyle = color;
+  paint.fillText(text,x,y);
+}
+
+function rounded(x,y,w,h,r,color,stroke,width = 2) {
+  paint.beginPath();
+  paint.roundRect(x,y,w,h,r);
+  paint.fillStyle = color;
+  paint.fill();
+  if (stroke) {
+    paint.strokeStyle = stroke;
+    paint.lineWidth = width;
+    paint.stroke();
+  }
+}
+
+function mixGradient(y1, y2, first, last) {
+  const gradient = paint.createLinearGradient(0,y1,0,y2);
+  gradient.addColorStop(0,first);
+  gradient.addColorStop(1,last);
+  return gradient;
+}
+
+function drawCoast(horizon, cameraX, now) {
+  paint.fillStyle = mixGradient(0,horizon,'#73c7df','#daede5');
+  paint.fillRect(0,0,W,H);
+  const sunX = 960 - cameraX * .18;
+  oval(sunX,106,74,74,'#ffefbf3e');
+  oval(sunX,106,49,49,'#fff1b9');
+  for (const [x,y,s] of [[162,105,1.16],[460,65,.64],[771,147,.72],[1160,123,.82]]) {
+    const drift = cameraX * -.13;
+    oval(x+drift,y,62*s,12*s,'#fff9e2ad');
+    oval(x-15*s+drift,y-9*s,29*s,16*s,'#fff9e2d1');
+    oval(x+21*s+drift,y-7*s,24*s,14*s,'#fff9e2a6');
+  }
+  const shift = cameraX * .20;
+  shape([[-30,horizon-15],[180-shift,horizon-64],[248-shift,horizon-73],[443-shift,horizon-14],
+    [735-shift,horizon-23],[1030-shift,horizon-78],[1280,horizon-32],[1310,horizon+8],[-30,horizon+8]],
+    '#a5c9bd');
+  shape([[-30,horizon+5],[119-shift,horizon-32],[221-shift,horizon-32],[388-shift,horizon+1],
+    [797-shift,horizon+1],[982-shift,horizon-33],[1083-shift,horizon-24],[1310,horizon+3]],'#6d9b96');
+  const lightHouseX = 1050 - shift;
+  shape([[lightHouseX-9,horizon-24],[lightHouseX-6,horizon-78],[lightHouseX+5,horizon-78],
+    [lightHouseX+9,horizon-24]],'#fff3d3',ink,1.5);
+  shape([[lightHouseX-6,horizon-47],[lightHouseX-5,horizon-59],[lightHouseX+6,horizon-59],
+    [lightHouseX+7,horizon-47]],'#e48166');
+  shape([[lightHouseX-10,horizon-78],[lightHouseX,horizon-90],[lightHouseX+10,horizon-78]],'#c05b58',ink,1.5);
+  paint.fillStyle = mixGradient(horizon,H,'#79c9c6','#3696a5');
+  paint.fillRect(0,horizon,W,H-horizon);
+  for (let n=0;n<53;n++) {
+    const depth = ((n * 59) % 327) / 327;
+    const y = horizon + 9 + depth ** 1.85 * (H - horizon);
+    const drift = (n % 2 ? 1 : -1) * now * (5 + depth * 6);
+    const x = ((n * 151 + drift - cameraX * depth) % (W+72) + W+72) % (W+72) - 36;
+    const length = 5 + depth * 31;
+    line([[x-length,y],[x,y+1],[x+length*.55,y]],n%4 ? '#f2ffee55' : '#dcfff0a0',1 + depth * 2);
+  }
+  const sailX = 243 - shift, sailY = horizon + 42;
+  shape([[sailX-15,sailY],[sailX+17,sailY],[sailX+10,sailY+7],[sailX-11,sailY+7]],'#ba5a47',ink,1.5);
+  shape([[sailX-2,sailY-4],[sailX-2,sailY-30],[sailX+13,sailY-4]],'#fff3cf',ink,1.2);
+  shape([[sailX-5,sailY-4],[sailX-5,sailY-22],[sailX-15,sailY-4]],'#ffe0a2');
+}
+
+function projection(view, horizontalScale) {
+  const horizon = 267 + view.pitch;
+  return (x, y, z) => {
+    const scale = 680 / Math.max(44,z - view.z);
+    return [W/2 + (x-view.x)*scale*horizontalScale, horizon + (view.height-y)*scale, scale];
+  };
+}
+
+function drawPier(view, project) {
+  const start = Math.max(0,view.z + 45);
+  const end = NEST_Z + 135;
+  const deck = (left,right,near,far,y=0) => [
+    project(left,y,near),project(left,y,far),project(right,y,far),project(right,y,near)
+  ];
+  if (start >= end) return;
+  shape(deck(-252,252,start,end,-12),'#275d70a8');
+  shape(deck(-248,248,start,end),mixGradient(265,H,'#f6cc99','#d99965'),ink,4);
+  for (let z = end-32; z > start; z -= 52) {
+    const [a,b] = [project(-245,0,z),project(245,0,z)];
+    line([a,b], '#91634c8d',limit(a[2]*1.15,.55,3));
+    if (z-5 > start) line([project(-244,1,z-5),project(244,1,z-5)],'#ffe5b694',limit(a[2],.45,2.5));
+    for (const x of [-206,207]) {
+      const [sx,sy,s] = project(x,1,z+12);
+      oval(sx,sy,limit(s*2.4,.5,4),limit(s*1.45,.4,2.5),'#714e45ac');
+    }
+  }
+  for (const x of [-240,-92,94,240]) line([project(x,1,start),project(x,1,end)],'#9e654b5b',2);
+  for (let z = end-35; z > start + 32; z -= 155) {
+    for (const x of [-241,241]) {
+      const [sx,base,s] = project(x,0,z);
+      if (s > 6) continue;
+      rounded(sx-6*s,base-42*s,12*s,47*s,3*s,'#806251',ink,limit(s*1.8,.6,4));
+      oval(sx,base-40*s,7*s,3.1*s,'#dcb381',ink,limit(s*1.25,.5,3));
+      line([[sx-4*s,base-27*s],[sx+5*s,base-27*s]],'#f2d08c',limit(s*2,.65,4));
+    }
+  }
+}
+
+function paintFries(x,y,s,count = 5) {
+  paint.save();
+  paint.translate(x,y);
+  paint.scale(s,s);
+  oval(0,26,28,7,'#43322944');
+  for (let j=0;j<count;j++) {
+    const fry = (j - (count-1)/2) * 9;
+    rounded(fry-4,-38-(j%2)*6,8,35,2,'#ffe184','#ba813e',1.5);
+  }
+  shape([[-28,-16],[28,-16],[19,26],[-19,26]],'#e66b54',ink,3);
+  shape([[-22,-12],[22,-12],[16,-3],[-16,-3]],'#faad68');
+  textAt('FRIES',0,8,12,'#fff4cf');
+  paint.restore();
+}
+
+function drawTarget(game, project, now) {
+  if (!['setup','launch','approach','dive','grab','hit'].includes(game.phase)) return;
+  const [x,y,s] = project(routeX(game.target),22,TRAY_Z);
+  const ready = (game.phase === 'approach' && game.ready && isLinedUp(game)) || game.clawOpen;
+  if (ready) {
+    const pulse = 1 + .05*Math.sin(now*7);
+    const r = Math.max(34,43*s)*pulse;
+    oval(x,y-6*s,r,r*.8,'#ffdb6c38','#253f4e',8);
+    oval(x,y-6*s,r,r*.8,'transparent','#ffe68e',4);
+  }
+  const taken = game.phase==='hit' ? game.dropped : game.carry;
+  paintFries(x,y,s,5-(taken || 0));
+  if (game.phase === 'approach' && !isLinedUp(game)) {
+    paintArrow(x,y-Math.max(57,69*s),Math.sign(routeX(game.target)-game.x),1,'#ffe193');
+  }
+}
+
+function drawVisitor(x,y,s,angry) {
+  oval(x,y+2*s,31*s,7*s,'#56524a50');
+  rounded(x-22*s,y-50*s,44*s,48*s,10*s,angry ? '#e48768' : '#6cbdb2',ink,3*s);
+  oval(x,y-57*s,23*s,25*s,'#ffe0ba',ink,3*s);
+  oval(x-7*s,y-60*s,2.6*s,4*s,ink);
+  oval(x+7*s,y-60*s,2.6*s,4*s,ink);
+  if (angry) {
+    line([[x-12*s,y-69*s],[x-4*s,y-66*s]],ink,2*s);
+    line([[x+12*s,y-69*s],[x+4*s,y-66*s]],ink,2*s);
+    oval(x,y-49*s,5*s,3.6*s,'#a6534a');
+  } else {
+    line([[x-5*s,y-48*s],[x+6*s,y-47*s]],'#9d6257',1.8*s);
+  }
+}
+
+function drawUmbrella(x,y,s,hit) {
+  paint.save();
+  paint.translate(x,y);
+  paint.rotate(hit ? .41 : -.15);
+  line([[0,2*s],[0,57*s],[12*s,60*s]],ink,4*s);
+  paint.beginPath();
+  paint.moveTo(-54*s,0);
+  paint.quadraticCurveTo(-45*s,-34*s,0,-39*s);
+  paint.quadraticCurveTo(45*s,-34*s,54*s,0);
+  paint.quadraticCurveTo(36*s,-8*s,19*s,0);
+  paint.quadraticCurveTo(0,-9*s,-19*s,0);
+  paint.quadraticCurveTo(-37*s,-7*s,-54*s,0);
+  paint.fillStyle = '#f37869';
+  paint.fill();
+  paint.lineWidth = 3*s;
+  paint.strokeStyle = ink;
+  paint.stroke();
+  line([[-52*s,0],[-29*s,-24*s],[0,-39*s],[25*s,-27*s],[53*s,0]],'#ffd6a0',1.6*s);
+  line([[0,-39*s],[0,-3*s]],'#b73c47',2*s);
+  paint.restore();
+}
+
+function paintArrow(x,y,side,s,color) {
+  paint.save();
+  paint.translate(x,y);
+  paint.scale(side*s,s);
+  shape([[-25,-8],[3,-8],[3,-21],[30,0],[3,21],[3,8],[-25,8]],color,ink,3);
+  paint.restore();
+}
+
+function drawDanger(game,inset) {
+  if (!game.attack || (game.attack.resolved && game.phase!=='hit')) return;
+  const hit = game.phase==='hit';
+  const entry = limit(game.attack.elapsed/ATTACK_NOTICE,0,1);
+  const charge = limit((game.attack.elapsed-ATTACK_NOTICE)/ATTACK_CHARGE,0,1);
+  const edge = W-inset;
+  const x = edge-103+(1-entry)*135-(hit ? 41 : 0);
+  const y = 390;
+  const scale = 1.53;
+  paint.save();
+  paint.globalAlpha = hit ? limit(1-game.elapsed*.7,.35,1) : 1;
+  drawVisitor(x,y,scale,true);
+  drawUmbrella(x-31,y-117-(hit ? -24 : 32*charge),scale,hit);
+  paint.restore();
+  if (!hit) {
+    const half = P0.attack.halfWidth+P0.attack.birdRadius;
+    const sx = value => W/2+(value-game.x)*1.5;
+    const left = limit(sx(game.attack.x-half),inset,W-inset);
+    const right = limit(sx(game.attack.x+half),inset,W-inset);
+    rounded(left,H*.64,Math.max(1,right-left),12,4,'#ee494e88','#ffe6be',2);
+    paintArrow(edge-58,216,1,1.16,'#ff554b');
+    if (entry >= 1) {
+      const radius = 150-110*charge;
+      oval(x-40,y-70,radius,radius*.77,'#ed535b22','#ffe6be',8);
+      oval(x-40,y-70,radius,radius*.77,'transparent','#ee494e',5);
+    }
+  }
+}
+
+function drawNest(game,project,now) {
+  if (game.z > NEST_Z-70) return;
+  const [x,y,s] = project(routeX(-game.blocked),0,NEST_Z);
+  if (game.phase === 'chase') {
+    const pulse = 1 + .14*Math.sin(now*6);
+    oval(x,y,66*s*pulse,23*s*pulse,'#fbe08a66','#fff0a5',4);
+  }
+  oval(x,y+3*s,47*s,16*s,'#e3ad68',ink,Math.max(1,s*2));
+  oval(x,y-1*s,36*s,10*s,'#9a614b','#6f5246',Math.max(1,s*1.5));
+  for (let j=0;j<12;j++) {
+    const a = j*TAU/12;
+    line([[x+28*s*Math.cos(a),y+8*s*Math.sin(a)],
+      [x+44*s*Math.cos(a+.12),y+14*s*Math.sin(a+.12)]],'#ffe0a1',Math.max(.7,s*1.6));
+  }
+  if (game.phase === 'chase') {
+    rounded(x-30,y-Math.max(35,31*s),60,25,7,'#18394a','#fbe08a',2);
+    textAt('巢穴',x,y-Math.max(22,31*s-13),15,'#fff2bb');
+  }
+}
+
+function drawWing(side, spread, lift, inset) {
+  paint.save();
+  paint.translate(side < 0 ? 26+inset : W-26-inset,H-146);
+  paint.scale(-side*(1-inset/W),1);
+  paint.translate(-105*(1-spread),72*(1-spread));
+  paint.rotate(.19-.38*lift+.2*(1-spread));
+  paint.beginPath();
+  paint.moveTo(-165,205);
+  paint.bezierCurveTo(-120,29,11,-46,162,-67);
+  paint.bezierCurveTo(202,-75,228,-74,220,-60);
+  paint.bezierCurveTo(207,-40,159,-11,136,5);
+  paint.quadraticCurveTo(194,-11,186,6);
+  paint.quadraticCurveTo(180,19,125,41);
+  paint.quadraticCurveTo(162,31,154,47);
+  paint.quadraticCurveTo(146,60,96,75);
+  paint.quadraticCurveTo(120,74,111,87);
+  paint.quadraticCurveTo(92,109,32,132);
+  paint.lineTo(-96,216);
+  paint.closePath();
+  paint.fillStyle = mixGradient(-76,150,'#fff8d6','#e7bb85');
+  paint.fill();
+  paint.lineWidth = 5;
+  paint.strokeStyle = ink;
+  paint.stroke();
+  line([[86,29],[132,4],[159,-24]],'#bd855a',3);
+  line([[71,58],[113,41],[143,21]],'#bd855a',3);
+  line([[48,93],[83,78],[119,55]],'#bd855a',3);
+  paint.restore();
+}
+
+function drawTalons(game, now) {
+  const x = W/2;
+  const y = H-211+Math.sin(now*8)*3+(game.clawSnap>.13 ? -11 : 0);
+  line([[x-12,y+65],[x,y+4],[x+3,y-12]],ink,24);
+  line([[x-12,y+65],[x,y+4],[x+3,y-12]],'#ee9c57',16);
+  for (const toe of [-1,0,1]) {
+    const bend = game.clawOpen ? toe*39 : toe*16;
+    const tipY = game.clawOpen ? y-46+Math.abs(toe)*10 : y-19;
+    const toePath = [[x+2,y-9],[x+bend,y-38],[x+bend*.77,tipY]];
+    line(toePath,ink,12);
+    line(toePath,'#ffc875',7);
+  }
+  const falling = game.phase==='hit';
+  const count = falling ? game.dropped : game.carry;
+  if (count) {
+    for (let j=0;j<count;j++) {
+      const offset = j-(count-1)/2;
+      paint.save();
+      paint.translate(x+offset*(falling ? 26+game.elapsed*90 : 24),
+        y-22+(falling ? game.elapsed**2*435 : 0));
+      paint.rotate(offset*.46-.28+(falling ? game.elapsed*(1+j)*2 : 0));
+      rounded(-7,-8,13,62,4,'#ffe078','#a76a3f',2.5);
+      paint.restore();
+    }
+  }
+}
+
+function drawFlight(game, view, now) {
+  const visibleWidth = Math.min(W,H*canvas.clientWidth/(canvas.clientHeight || H));
+  const inset = (W-visibleWidth)/2;
+  const project = projection(view,limit(visibleWidth/W*1.14,.42,1));
+  drawCoast(267+view.pitch,view.x,now);
+  paint.save();
+  if (game.phase==='hit') {
+    const hitShake = Math.max(0,1-game.elapsed/.54);
+    paint.translate(Math.sin(game.elapsed*72)*25*hitShake,Math.cos(game.elapsed*58)*13*hitShake);
+  }
+  paint.translate(W/2,H/2);
+  paint.rotate(view.bank);
+  paint.translate(-W/2,-H/2);
+  drawPier(view,project);
+  drawNest(game,project,now);
+  if (game.z < TRAY_Z-76) {
+    const [x,y,s] = project(routeX(game.target)*.28,0,TRAY_Z+34);
+    drawVisitor(x,y,s,false);
+  }
+  drawTarget(game,project,now);
+  paint.restore();
+  drawDanger(game,inset);
+
+  if (view.speed > .26) {
+    const alpha = limit(view.speed*.5,0,.38);
+    paint.globalAlpha = alpha;
+    for (let j=0;j<14;j++) {
+      const p = (now*1.8 + j*.271) % 1;
+      const side = j%2 ? 1 : -1;
+      const x = W/2 + side*(285+p*320);
+      const y = 300 + p*(j%3-1)*230;
+      line([[x,y],[x+side*(15+p*48),y+(j%3-1)*p*28]],'#fff4ca',2);
+    }
+    paint.globalAlpha = 1;
+  }
+  drawWing(-1,view.wings,view.lift,inset);
+  drawWing(1,view.wings,view.lift,inset);
+  if (game.clawOpen || game.carry || game.phase==='hit') drawTalons(game,now);
+  if (game.flash > 0) {
+    paint.fillStyle = game.flashColor;
+    paint.globalAlpha = limit(game.flash,0,1)*.44;
+    paint.fillRect(0,0,W,H);
+    paint.globalAlpha = 1;
+  }
+}
+
+function drawMirror(video, context, width, height, landmarks, valid, hat = false) {
+  if (video.readyState < 2 || !video.videoWidth) return;
+  const scale = Math.max(width/video.videoWidth,height/video.videoHeight);
+  const w = scale*video.videoWidth, h = scale*video.videoHeight;
+  const left = (width-w)/2, top = (height-h)/2;
+  context.save();
+  context.translate(width,0);
+  context.scale(-1,1);
+  context.drawImage(video,left,top,w,h);
+  context.restore();
+  if (!landmarks?.length) return;
+  const point = index => [(1-landmarks[index].x)*w+left, landmarks[index].y*h+top];
+  if (hat && (landmarks[0].visibility ?? 1) > .46) {
+    const [x,y] = point(0);
+    const shoulder = Math.abs(point(11)[0]-point(12)[0]);
+    const s = limit(shoulder*.38,18,75);
+    oval(x,y-s*.82,s*.83,s*.14,'#ffdd75',ink,3);
+    rounded(x-s*.55,y-s*1.48,s*1.1,s*.65,s*.17,'#f7b852',ink,3);
+    rounded(x-s*.83,y-s*.94,s*1.66,s*.24,s*.11,'#ffe189',ink,2.5);
+    return;
+  }
+  if (hat) return;
+  const joints = [[11,12],[11,13],[12,14],[11,23],[12,24],[23,24]];
+  context.beginPath();
+  for (const [a,b] of joints) {
+    if (Math.min(landmarks[a].visibility ?? 1,landmarks[b].visibility ?? 1)<.45) continue;
+    context.moveTo(...point(a));
+    context.lineTo(...point(b));
+  }
+  context.lineWidth = Math.max(2,width/190);
+  context.strokeStyle = valid ? '#a3f3be' : '#ffd093';
+  context.lineCap = 'round';
+  context.stroke();
+}
+</script>
+<script>
+'use strict';
+
+const $ = id => document.getElementById(id);
+const stage = $('stage');
+const preview = $('previewCanvas');
+const previewContext = preview.getContext('2d');
+const device = $('device');
+const video = document.createElement('video');
+video.muted = true;
+video.playsInline = true;
+const poseFrame = document.createElement('canvas');
+const poseContext = poseFrame.getContext('2d');
+const ESCAPE_SECONDS = 8;
+// Attack/flight distances are world units; gameplay times seconds; recognition times ms.
+const P0 = {
+  attack:{notice:.30, charge:1.10, halfWidth:92, birdRadius:14, escapeDepth:240,
+    dodgeDistance:156, dodgeCooldown:.65},
+  motion:{visibility:.49, sampleGap:160, recover:140, smooth:12,
+    leanOn:.075, leanOff:.045, leanRange:.22, steerSpeed:222, chaseSteerSpeed:180,
+    flickLean:.20, flickSpeed:1.45, flickConfirm:55, flickWindow:240,
+    spreadOn:.72, spreadOff:.60, spreadConfirm:140,
+    tuckOn:1.27, tuckOff:1.40, tuckConfirm:120,
+    flapSpan:1.44, flapBothOut:.58, flapHigh:-.14, flapLow:-.36, flapConfirm:60, flapCooldown:280},
+  hand:{confidence:.65, confirm:90, cooldown:180, sampleGap:180, missing:220,
+    chestWidth:.97, chestTop:.44, chestBottom:.12}
+};
+const ATTACK_NOTICE = P0.attack.notice;
+const ATTACK_CHARGE = P0.attack.charge;
+const MAX_FRIES = 3;
+const TRACKING_GRACE = 320;
+const CALIBRATION_MS = 1000;
+const VISION_ROOTS = [
+  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21',
+  'https://unpkg.com/@mediapipe/tasks-vision@0.10.21'
+];
+const POSE_MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+const HAND_MODEL = 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task';
+
+let game = {phase:'setup',round:1,score:0,target:-1,blocked:-1,x:0,z:50};
+const view = {x:0,z:50,height:140,pitch:0,bank:0,lift:0,wings:1,speed:0};
+let mode = 'keyboard', inputLift = 0, inputSpread = 1, keyboardFlap = 0;
+let audio, muted = false, heyBuffer;
+let session = 0, cameraRequest = 0, opening = false, stream = null, tracker = null, handTracker = null, modelTask = null;
+let landmarks = null, latestPose = null, neutral = null, calibration = null, motion = makeMotion();
+let lastVideoTime = -1, lastPoseAt = -Infinity, lastValidAt = -Infinity;
+let trackingPaused = false, lastTick = performance.now();
+
+function makeMotion() {
+  return {lean:0, leanAt:null, leanActive:false, filtered:null, validSince:null,
+    flapArmed:false, raised:false, highAt:null, lowAt:null, flapAt:-Infinity,
+    spreadAt:null, spreadReady:false, tuckAt:null, flickAt:null, flickSide:0,
+    hand:null, candidate:null, candidateAt:0, handSeenAt:-Infinity, handSampleAt:-Infinity};
+}
+
+// Losing evidence cancels a pending action; recovery never completes an old gesture.
+function resetRecognition() {
+  motion = makeMotion();
+  game.clawOpen = false;
+  game.lean = 0;
+  inputLift = 0;
+}
+const heldKeys = new Set();
+
+function cue(title,detail = '') {
+  if ($('cueText').textContent !== title) $('cueText').textContent = title;
+  if ($('cueDetail').textContent !== detail) $('cueDetail').textContent = detail;
+}
+
+function setPhase(phase) {
+  resetRecognition();
+  heldKeys.clear();
+  game.phase = phase;
+  game.elapsed = 0;
+  stage.dataset.phase = phase;
+  $('setup').hidden = phase !== 'setup';
+  $('hud').hidden = phase === 'setup' || phase === 'result';
+  $('result').hidden = phase !== 'result';
+  $('settings').hidden = phase === 'setup';
+  $('motionStatus').hidden = true;
+}
+
+function tone(notes) {
+  if (muted || !audio || audio.state !== 'running') return;
+  for (const [frequency,offset,duration,type] of notes) {
+    const start = audio.currentTime+offset;
+    const osc = audio.createOscillator();
+    const volume = audio.createGain();
+    osc.type = type || 'triangle';
+    osc.frequency.value = frequency;
+    volume.gain.setValueAtTime(.001,start);
+    volume.gain.exponentialRampToValueAtTime(.07,start+.022);
+    volume.gain.exponentialRampToValueAtTime(.001,start+duration);
+    osc.connect(volume).connect(audio.destination);
+    osc.start(start);
+    osc.stop(start+duration+.01);
+  }
+}
+
+function startAudio() {
+  try {
+    audio ??= new AudioContext();
+    audio.resume().catch(() => {});
+  } catch {
+    muted = true;
+  }
+}
+
+function playWind() {
+  if (muted || audio?.state !== 'running') return;
+  const length = .71;
+  const buffer = audio.createBuffer(1,Math.round(audio.sampleRate*length),audio.sampleRate);
+  const samples = buffer.getChannelData(0);
+  let air = 0;
+  for (let i=0;i<samples.length;i++) {
+    air = air*.81+(Math.random()*2-1)*.19;
+    samples[i] = air*.65*Math.sin(Math.PI*i/samples.length);
+  }
+  const source = audio.createBufferSource();
+  source.buffer = buffer;
+  source.connect(audio.destination);
+  source.start();
+}
+
+function playHey() {
+  if (muted || audio?.state !== 'running') return;
+  if (!heyBuffer) {
+    const length = .39;
+    const step = 1/audio.sampleRate;
+    heyBuffer = audio.createBuffer(1,Math.round(length/step),audio.sampleRate);
+    const samples = heyBuffer.getChannelData(0);
+    let pitch = 0;
+    for (let i=0;i<samples.length;i++) {
+      const time = i*step;
+      const vowel = limit((time-.055)/.28,0,1);
+      const fundamental = 210-57*vowel;
+      pitch += TAU*fundamental*step;
+      const envelope = limit((time-.045)/.046,0,1)*limit((length-time)/.078,0,1);
+      let voiced = 0;
+      for (let harmonic=1;harmonic<=17;harmonic++) {
+        const hz = fundamental*harmonic;
+        const formants = Math.exp(-((hz-(525-220*vowel))**2)/25000) +
+          .76*Math.exp(-((hz-(1710+550*vowel))**2)/90000) +
+          .34*Math.exp(-((hz-2780)**2)/115000);
+        voiced += Math.sin(pitch*harmonic)*formants/Math.sqrt(harmonic);
+      }
+      const breath = time<.09 ? (Math.random()*2-1)*Math.sin(Math.PI*time/.09)*.14 : 0;
+      samples[i] = Math.tanh(.87*voiced)*envelope*.72+breath;
+    }
+  }
+  const source = audio.createBufferSource();
+  const pan = audio.createStereoPanner();
+  pan.pan.value = .9;
+  source.buffer = heyBuffer;
+  source.connect(pan).connect(audio.destination);
+  source.start();
+}
+
+function updateHUD() {
+  $('round').textContent = game.round;
+  $('score').textContent = game.score;
+  $('load').hidden = !game.carry;
+  $('carry').textContent = game.carry;
+  const notice = $('reaction');
+  const call = game.feedback || (game.attack && !game.attack.resolved ? 'HEY!!!' : '');
+  if (notice.textContent !== call) notice.textContent = call;
+  notice.hidden = !call;
+  notice.classList.toggle('success',call === 'TOO SLOW!');
+  $('timePanel').hidden = game.phase !== 'chase';
+  if (game.phase === 'chase') {
+    $('timeText').textContent = Math.max(0,game.remaining).toFixed(1);
+    $('timePanel').classList.toggle('urgent',game.remaining<2);
+  }
+}
+
+function beginRound(newMode, restart = false) {
+  mode = newMode;
+  if (mode === 'keyboard') closeCamera();
+  startAudio();
+  const round = restart ? 1 : game.round+1;
+  const target = round%2 ? -1 : 1;
+  game = {round,score:restart ? 0 : game.score,target,blocked:target,x:0,z:50,lean:0,
+    elapsed:0,flaps:0,ready:false,carry:0,remaining:ESCAPE_SECONDS,boost:0,clawOpen:false,
+    clawSnap:0,dodged:false,flash:0,clock:0,grabReadyAt:0,dodgeReadyAt:0};
+  Object.assign(view,{x:0,z:50,height:140,pitch:0,bank:0,lift:0,wings:1,speed:0});
+  motion = makeMotion();
+  inputLift = keyboardFlap = 0;
+  inputSpread = 1;
+  trackingPaused = false;
+  setPhase('launch');
+  refreshCue();
+  updateHUD();
+  $('settings').blur();
+}
+
+function returnToSetup() {
+  game = {round:1,score:0,x:0,target:-1,blocked:-1,z:50,elapsed:0,carry:0,flash:0};
+  Object.assign(view,{x:0,z:50,height:140,pitch:0,bank:0,lift:0,wings:1,speed:0});
+  calibration = null;
+  trackingPaused = false;
+  setPhase('setup');
+  updateCameraButtons();
+}
+
+function refreshCue() {
+  const key = mode === 'keyboard';
+  const direction = side => side < 0 ? '左' : '右';
+  const sideKey = side => side < 0 ? 'A / ←' : 'D / →';
+  if (game.phase === 'launch') {
+    cue('拍两下翅膀', key ? '按 W 或空格 · '+game.flaps+'/2' : '张开双臂，上下扑动 · '+game.flaps+'/2');
+  } else if (game.phase === 'approach') {
+    const turn = Math.sign(routeX(game.target)-game.x);
+    if (!isLinedUp(game)) {
+      cue('向'+direction(turn)+'倾斜',key ? sideKey(turn)+' · 飞向薯条盒' : '上半身缓慢朝薯条倾斜');
+    } else if (!game.ready) {
+      cue('看准薯条', '等盒子亮起金圈');
+    } else {
+      cue('收翅俯冲',key ? '按 S · 降到薯条旁' : '把两侧手肘收向身体');
+    }
+  } else if (game.phase === 'dive') {
+    cue('俯冲！');
+  } else if (game.phase === 'grab') {
+    const escape = key ? 'W 逃跑 · Shift + A / D 闪避' : '双臂展开逃跑 · 快速侧倾闪避';
+    if (game.carry >= MAX_FRIES) cue('展翅逃跑',escape);
+    else if (game.clawOpen) cue('握拳抓薯条',key ? '按 F 抓一根 · '+escape : (game.carry ? escape : '握紧刚才伸出的那只手'));
+    else cue(game.carry ? '再张手，或飞走' : '伸手张开五指',key ? '按 E 张爪 · '+escape : (game.carry ? escape : '把一只手伸到胸前'));
+  } else if (game.phase === 'chase') {
+    if (game.attack && !game.attack.resolved) {
+      cue('展翅快跑',key ? 'W 加速 · Shift + A / D 闪避' : '快速向左或向右倾一次，可闪避');
+    } else {
+      cue('飞回巢穴',key ? '按 W 或空格拍翅加速' : '拍翅加速，沿亮起的路线回巢');
+    }
+  } else if (game.phase === 'hit') {
+    cue('薯条掉了！');
+  } else if (game.phase === 'home') {
+    cue('落巢！', '+'+game.deposited+' 根薯条');
+  }
+}
+
+function canAct() {
+  return mode === 'keyboard' || !trackingPaused;
+}
+
+function steer(side) {
+  if (!canAct() || !['approach','chase'].includes(game.phase) || game.x === routeX(side)) return;
+  game.x = routeX(side);
+  tone([[420,0,.12]]);
+  refreshCue();
+}
+
+function flap() {
+  if (!canAct()) return;
+  if (mode === 'keyboard') keyboardFlap = .31;
+  if (game.phase === 'launch') {
+    game.flaps++;
+    tone([[game.flaps === 1 ? 540 : 740,0,.14]]);
+    if (game.flaps >= 2) {
+      motion.lean = 0;
+      setPhase('approach');
+    }
+    refreshCue();
+  } else if (game.phase === 'chase') {
+    game.boost = 1.3;
+    tone([[490,0,.12],[570,.075,.14]]);
+  } else if (game.phase === 'grab') {
+    beginChase();
+  }
+}
+
+function tuck() {
+  if (!canAct() || game.phase !== 'approach' || !game.ready || !isLinedUp(game)) return;
+  setPhase('dive');
+  game.diveFrom = game.z;
+  playWind();
+  refreshCue();
+}
+
+function beginGrab() {
+  game.x = routeX(game.target);
+  setPhase('grab');
+  refreshCue();
+}
+
+function openClaw(hand) {
+  if (!canAct() || game.phase !== 'grab' || game.clawOpen || game.carry>=MAX_FRIES) return;
+  if (game.clock < game.grabReadyAt) return;
+  game.clawOpen = true;
+  motion.hand = hand;
+  tone([[560,0,.075]]);
+  refreshCue();
+}
+
+function closeClaw(hand) {
+  if (!canAct() || game.phase !== 'grab' || !game.clawOpen || hand !== motion.hand) return;
+  if (game.carry >= MAX_FRIES || game.clock < game.grabReadyAt) return;
+  game.clawOpen = false;
+  motion.hand = motion.candidate = null;
+  game.grabReadyAt = game.clock + P0.hand.cooldown/1000;
+  game.clawSnap = .28;
+  game.carry++;
+  tone([[740,0,.085],[1050,.06,.11]]);
+  if (game.carry === 2 && !game.attack) {
+    game.attack = {elapsed:0,stage:'notice',resolved:false,x:game.x,z:game.z,dodgeUsed:false};
+    playHey();
+  }
+  refreshCue();
+  updateHUD();
+}
+
+function dodge(side) {
+  const attack = game.attack;
+  if (!canAct() || game.phase !== 'chase' || !attack || attack.resolved || attack.dodgeUsed ||
+      game.clock < game.dodgeReadyAt || ![-1,1].includes(side)) return;
+  attack.dodgeUsed = true;
+  game.dodged = true;
+  game.dodgeReadyAt = game.clock+P0.attack.dodgeCooldown;
+  game.x = limit(game.x+side*P0.attack.dodgeDistance,-210,210);
+  playWind();
+}
+
+function beginChase(side = 0) {
+  if (!canAct() || game.phase !== 'grab') return;
+  // No position teleport: escaping must cover real distance before impact.
+  game.clawOpen = false;
+  game.remaining = ESCAPE_SECONDS;
+  game.boost = 1.3;
+  game.flash = .48;
+  game.flashColor = '#ffda79';
+  setPhase('chase');
+  tone([[540,0,.13],[780,.08,.15]]);
+  if (side) dodge(side);
+  refreshCue();
+}
+
+function updateAttack(dt) {
+  if (!game.attack || game.attack.resolved) return;
+  game.attack.elapsed += dt;
+  game.attack.stage = game.attack.elapsed < ATTACK_NOTICE ? 'notice' : 'charge';
+  if (game.attack.elapsed < ATTACK_NOTICE+ATTACK_CHARGE) return;
+  game.attack.stage = 'impact';
+  game.attack.resolved = true;
+  const inWidth = Math.abs(game.x-game.attack.x) <= P0.attack.halfWidth+P0.attack.birdRadius;
+  const inDepth = Math.abs(game.z-game.attack.z) <= P0.attack.escapeDepth;
+  if (!inWidth || !inDepth) {
+    game.feedback = 'TOO SLOW!';
+    game.feedbackTime = 1.45;
+    tone([[520,0,.14],[775,.08,.17]]);
+    refreshCue();
+  } else {
+    game.dropped = game.carry;
+    game.carry = 0;
+    game.clawOpen = false;
+    game.feedback = 'BONK!!!';
+    game.flash = .78;
+    game.flashColor = '#f5655c';
+    tone([[150,0,.22,'sawtooth'],[105,.08,.25]]);
+    setPhase('hit');
+    refreshCue();
+  }
+}
+
+function arrive() {
+  game.deposited = game.carry;
+  game.score += game.carry;
+  game.carry = 0;
+  game.flash = .49;
+  game.flashColor = '#ffe098';
+  setPhase('home');
+  tone([[560,0,.14],[710,.11,.15],[920,.22,.28]]);
+  refreshCue();
+}
+
+function showResult(success, reason = '') {
+  game.carry = 0;
+  $('resultTitle').textContent = success ? (game.deposited ? '偷到了！' : '空爪回巢') : reason;
+  $('resultText').textContent = success
+    ? '这趟带回 '+game.deposited+' 根。巢里共有 '+game.score+' 根薯条。'
+    : '这趟的薯条掉了。巢里还有 '+game.score+' 根。';
+  if (!success) tone([[175,0,.28,'sawtooth'],[120,.11,.24,'triangle']]);
+  setPhase('result');
+  updateHUD();
+  $('again').focus({preventScroll:true});
+}
+
+function updateFlight(dt) {
+  game.elapsed += dt;
+  game.clock += dt;
+  game.flash = Math.max(0,game.flash-dt*1.9);
+  game.clawSnap = Math.max(0,game.clawSnap-dt);
+  keyboardFlap = Math.max(0,keyboardFlap-dt);
+  if (game.feedbackTime > 0) {
+    game.feedbackTime -= dt;
+    if (game.feedbackTime <= 0) game.feedback = '';
+  }
+
+  if (game.phase === 'approach') {
+    if (mode === 'body') {
+      const linedUp = isLinedUp(game);
+      game.x = limit(game.x+game.lean*P0.motion.steerSpeed*dt,-210,210);
+      if (linedUp !== isLinedUp(game)) refreshCue();
+    }
+    game.z = Math.min(APPROACH_LIMIT,game.z+243*dt);
+    if (!game.ready && game.z >= TRAY_Z-323) {
+      game.ready = true;
+      if (isLinedUp(game)) tone([[690,0,.12]]);
+      refreshCue();
+    }
+  } else if (game.phase === 'dive') {
+    const progress = limit(game.elapsed/.63,0,1);
+    game.z = game.diveFrom+(TRAY_Z-105-game.diveFrom)*progress;
+    game.x = smooth(game.x,routeX(game.target),dt,9);
+    if (progress === 1) beginGrab();
+  } else if (game.phase === 'chase') {
+    game.remaining -= dt;
+    game.boost = Math.max(0,game.boost-dt);
+    const home = NEST_Z-85;
+    game.z = Math.min(home,game.z+(game.boost ? 268 : 150)*dt);
+    // No automatic lateral escape while an attack is pending.
+    if (mode === 'body') game.x = limit(game.x+game.lean*P0.motion.chaseSteerSpeed*dt,-210,210);
+    if (!game.attack || game.attack.resolved) game.x = smooth(game.x,routeX(-game.blocked),dt,2.8);
+    if (game.remaining <= 0) {
+      showResult(false,'没赶回巢');
+      return;
+    }
+    if (game.z >= home) arrive();
+  } else if (game.phase === 'hit') {
+    if (game.elapsed>.78) showResult(false,'BONK!!!');
+  } else if (game.phase === 'home') {
+    game.z = Math.min(NEST_Z-46,game.z+75*dt);
+    if (game.elapsed > 1.0) showResult(true);
+  }
+  if (game.phase === 'grab' || game.phase === 'chase') updateAttack(dt);
+  if (game.phase !== 'setup') updateHUD();
+}
+
+function updateView(dt) {
+  const dive = game.phase === 'dive';
+  const low = dive || game.phase === 'grab' || game.phase === 'hit';
+  const chase = game.phase === 'chase';
+  const home = game.phase === 'home';
+  const targetX = game.x;
+  const steering = targetX-view.x;
+  view.x = smooth(view.x,targetX,dt,11);
+  view.z = smooth(view.z,game.z,dt,dive ? 16 : 10);
+  view.height = smooth(view.height,low ? 61 : home ? 65 : chase ? 113 : 141,dt,5.6);
+  view.pitch = smooth(view.pitch,low ? -92 : home ? -62 : chase ? -34 : 0,dt,5.2);
+  view.bank = smooth(view.bank,limit(steering*.00045+game.lean*.042,-.10,.10),dt,9);
+  const lift = keyboardFlap > 0 ? Math.sin((.31-keyboardFlap)*Math.PI/.31) : inputLift;
+  view.lift = smooth(view.lift,dive ? -.23 : lift,dt,11);
+  view.wings = smooth(view.wings,low ? .16 : Math.max(.62,inputSpread),dt,10);
+  view.speed = smooth(view.speed,dive || game.boost ? 1 : chase ? .63 : game.phase === 'approach' && game.z<APPROACH_LIMIT ? .42 : 0,dt,5);
+}
+
+function readPose(points, aspect) {
+  const visible = i => {
+    const joint = points?.[i];
+    return joint && (joint.visibility ?? 1) > P0.motion.visibility && joint.x > .01 && joint.x < .99 &&
+      joint.y > .02 && joint.y < .98;
+  };
+  if (!points || ![11,12,23,24].every(visible)) return null;
+  const [left,right,hipA,hipB] = [11,12,23,24].map(i => points[i]);
+  const shoulderY = (left.y+right.y)/2, hipY = (hipA.y+hipB.y)/2;
+  const torso = hipY-shoulderY;
+  const shoulders = Math.abs(left.x-right.x)*aspect;
+  if (torso < .077 || shoulders < .055) return null;
+  const shoulderX = (left.x+right.x)/2, hipX = (hipA.x+hipB.x)/2;
+  const pose = {x:(1-hipX*.76-shoulderX*.24)*aspect, torso,
+    lean:(hipX-shoulderX)*aspect/torso, shoulderX, shoulderY, hipY, span:null};
+  if (!visible(13) || !visible(14)) return pose;
+  const elbowA = points[13], elbowB = points[14];
+  const orientation = Math.sign(left.x-right.x);
+  pose.span = Math.abs(elbowA.x-elbowB.x)*aspect/shoulders;
+  pose.lift = (shoulderY-(elbowA.y+elbowB.y)*.5)/torso;
+  pose.bothOut = Math.min((elbowA.x-shoulderX)*orientation,(shoulderX-elbowB.x)*orientation)*aspect/shoulders;
+  return pose;
+}
+
+function trackMotion(pose, now) {
+  const cfg = P0.motion;
+  const gap = motion.leanAt === null ? 0 : now-motion.leanAt;
+  if (gap > cfg.sampleGap) { resetRecognition(); refreshCue(); }
+  motion.validSince ??= now;
+  const dt = motion.leanAt === null ? 0 : Math.min(now-motion.leanAt,100)/1000;
+  const previous = motion.lean;
+  const lean = smooth(previous,pose.lean-neutral.lean,dt,cfg.smooth);
+  motion.lean = lean;
+  motion.leanAt = now;
+  motion.filtered ??= {span:pose.span,lift:pose.lift,bothOut:pose.bothOut};
+  for (const key of ['span','lift','bothOut']) {
+    motion.filtered[key] = pose.span === null ? null : motion.filtered[key] == null
+      ? pose[key] : smooth(motion.filtered[key],pose[key],dt,cfg.smooth);
+  }
+  if (now-motion.validSince < cfg.recover) return;
+  const magnitude = Math.abs(lean);
+  motion.leanActive = magnitude > (motion.leanActive ? cfg.leanOff : cfg.leanOn);
+  game.lean = motion.leanActive ? Math.sign(lean)*limit((magnitude-cfg.leanOff)/cfg.leanRange,0,1) : 0;
+
+  if (game.phase === 'chase') {
+    const velocity = dt > 0 ? (lean-previous)/dt : 0;
+    if (magnitude < cfg.leanOff) motion.flickAt = null;
+    if (magnitude >= cfg.flickLean && Math.sign(velocity) === Math.sign(lean) &&
+        Math.abs(velocity) >= cfg.flickSpeed && motion.flickAt === null) {
+      motion.flickAt = now;
+      motion.flickSide = Math.sign(lean);
+    }
+    if (motion.flickAt !== null && now-motion.flickAt >= cfg.flickConfirm &&
+        now-motion.flickAt <= cfg.flickWindow && magnitude >= cfg.flickLean &&
+        Math.sign(lean) === motion.flickSide) {
+      dodge(motion.flickSide);
+      motion.flickAt = -Infinity;
+    }
+  }
+  const {span,lift,bothOut} = motion.filtered;
+  if (span === null) {
+    motion.tuckAt = motion.spreadAt = motion.highAt = motion.lowAt = null;
+    motion.raised = motion.flapArmed = motion.spreadReady = false;
+    return;
+  }
+  inputSpread = limit((span-1.06)/.7,0,1);
+  inputLift = limit((lift+.27)*1.6,-1,1);
+
+  if (game.phase === 'approach') {
+    // Confirm both elbows tucked only when the target can actually be dived at.
+    if (!game.ready || !isLinedUp(game) || span > cfg.tuckOff) motion.tuckAt = null;
+    else if (span < cfg.tuckOn) {
+      motion.tuckAt ??= now;
+      if (now-motion.tuckAt >= cfg.tuckConfirm) { tuck(); return; }
+    }
+  }
+  if (game.phase === 'grab') {
+    // Enter grab with arms in; one hand reaching forward cannot count as wings out.
+    if (bothOut < cfg.spreadOff) { motion.spreadReady = true; motion.spreadAt = null; }
+    else if (bothOut > cfg.spreadOn && motion.spreadReady) {
+      motion.spreadAt ??= now;
+      if (now-motion.spreadAt >= cfg.spreadConfirm) { beginChase(); return; }
+    } else motion.spreadAt = null;
+    return;
+  }
+  if (!['launch','chase'].includes(game.phase)) return;
+  // Low -> confirmed high -> confirmed low is one complete flap cycle.
+  if (span < cfg.flapSpan || bothOut < cfg.flapBothOut) {
+    motion.raised = motion.flapArmed = false;
+    motion.highAt = motion.lowAt = null;
+    return;
+  }
+  if (lift < cfg.flapLow) {
+    motion.lowAt ??= now;
+    motion.highAt = null;
+    if (now-motion.lowAt >= cfg.flapConfirm) {
+      motion.flapArmed = true;
+      if (motion.raised && now-motion.flapAt >= cfg.flapCooldown) {
+        motion.raised = motion.flapArmed = false;
+        motion.flapAt = now;
+        flap();
+        return;
+      }
+    }
+  } else if (lift > cfg.flapHigh) {
+    motion.lowAt = null;
+    motion.highAt ??= now;
+    if (motion.flapArmed && now-motion.highAt >= cfg.flapConfirm) motion.raised = true;
+  } else { motion.highAt = motion.lowAt = null; }
+}
+
+function trackHand(result, pose, aspect, now) {
+  if (!canAct() || game.phase !== 'grab' || game.carry >= MAX_FRIES ||
+      motion.validSince === null || now-motion.validSince < P0.motion.recover) return;
+  const cfg = P0.hand;
+  if (now-motion.handSampleAt > cfg.sampleGap) {
+    game.clawOpen = false;
+    motion.hand = motion.candidate = null;
+    refreshCue();
+  }
+  motion.handSampleAt = now;
+  const handedness = result.handedness ?? result.handednesses;
+  const hands = (result.landmarks ?? []).map((points,index) => {
+    const palm = points[9];
+    const gesture = result.gestures?.[index]?.[0];
+    const identity = handedness?.[index]?.[0];
+    const side = identity?.categoryName;
+    if (!palm || !side || !gesture || (identity.score ?? 1) < cfg.confidence) return null;
+    const inFront = Math.abs(palm.x-pose.shoulderX)*aspect < pose.torso*cfg.chestWidth &&
+      palm.y > pose.shoulderY-pose.torso*cfg.chestTop && palm.y < pose.hipY+pose.torso*cfg.chestBottom;
+    return inFront ? {side,shape:gesture.categoryName,score:gesture.score} : null;
+  }).filter(Boolean);
+  const hand = game.clawOpen ? hands.find(hand=>hand.side===motion.hand)
+    : hands.find(hand=>hand.shape==='Open_Palm' && hand.score >= cfg.confidence);
+  if (hand) motion.handSeenAt = now;
+  if (!hand && game.clawOpen && now-motion.handSeenAt > cfg.missing) {
+    game.clawOpen = false;
+    motion.hand = null;
+    refreshCue();
+  }
+  const expected = game.clawOpen ? 'Closed_Fist' : 'Open_Palm';
+  if (!hand || hand.shape !== expected || hand.score < cfg.confidence || game.clock < game.grabReadyAt) {
+    motion.candidate = null;
+    return;
+  }
+  const candidate = hand.side+expected;
+  if (motion.candidate !== candidate) {
+    motion.candidate = candidate;
+    motion.candidateAt = now;
+    return;
+  }
+  if (now-motion.candidateAt < cfg.confirm) return;
+  motion.candidate = null;
+  if (game.clawOpen) closeClaw(hand.side);
+  else openClaw(hand.side);
+}
+
+function recordCalibration(pose, now) {
+  const bar = $('calibrationProgress');
+  if (!pose || (calibration.count && Math.abs(pose.x-calibration.x/calibration.count)>pose.torso*.24)) {
+    calibration = {started:null,count:0,x:0,lean:0};
+    bar.value = 0;
+    return;
+  }
+  calibration.started ??= now;
+  calibration.x += pose.x;
+  calibration.lean += pose.lean;
+  calibration.count++;
+  bar.value = Math.min(1,(now-calibration.started)/CALIBRATION_MS);
+  if (bar.value < 1) return;
+  neutral = {lean:calibration.lean/calibration.count};
+  calibration = null;
+  cameraStatus('校准完成。开始体感后，张开双臂拍两下起飞。');
+  updateCameraButtons();
+}
+
+function drawVideoPreview() {
+  if (!stream) return;
+  drawMirror(video,previewContext,preview.width,preview.height,landmarks,Boolean(latestPose));
+}
+
+function updatePose(now) {
+  if (!stream || !tracker || video.readyState<2 || video.currentTime===lastVideoTime || now-lastPoseAt<42) return;
+  lastVideoTime = video.currentTime;
+  lastPoseAt = now;
+  const aspect = video.videoWidth/video.videoHeight;
+  if (poseFrame.width!==640 || poseFrame.height!==Math.round(640/aspect)) {
+    poseFrame.width = preview.width = 640;
+    poseFrame.height = preview.height = Math.round(640/aspect);
+    $('preview').style.aspectRatio = String(aspect);
+  }
+  poseContext.drawImage(video,0,0,poseFrame.width,poseFrame.height);
+
+  try {
+    landmarks = tracker.detectForVideo(poseFrame,now).landmarks[0] || null;
+  } catch (error) {
+    console.warn('Pose tracking interrupted',error);
+    tracker.close();
+    handTracker.close();
+    tracker = handTracker = modelTask = null;
+    closeCamera();
+    returnToSetup();
+    cameraStatus('姿态识别中断。请重新开启摄像头。',true);
+    return;
+  }
+  latestPose = readPose(landmarks,aspect);
+  if (game.phase==='setup' && calibration) recordCalibration(latestPose,now);
+  if (!latestPose) {
+    if (mode === 'body') { resetRecognition(); refreshCue(); }
+    return;
+  }
+  lastValidAt = now;
+  if (mode==='body' && neutral && ['launch','approach','dive','grab','chase'].includes(game.phase)) {
+    if (trackingPaused) {
+      trackingPaused = false;
+      motion = makeMotion();
+      game.clawOpen = false;
+      game.lean = 0;
+      refreshCue();
+    }
+    trackMotion(latestPose,now);
+    if (game.phase==='grab' && game.carry<MAX_FRIES && now-motion.handSampleAt>=56) {
+      try {
+        trackHand(handTracker.recognizeForVideo(video,now),latestPose,aspect,now);
+      } catch (error) {
+        console.warn('Hand tracking interrupted',error);
+        handTracker.close();
+        tracker.close();
+        tracker = handTracker = modelTask = null;
+        closeCamera();
+        returnToSetup();
+        cameraStatus('手势识别中断。请重新开启摄像头。',true);
+      }
+    }
+  }
+}
+
+function cameraStatus(message,error = false) {
+  $('cameraStatus').textContent = message;
+  $('cameraStatus').classList.toggle('error',error);
+}
+
+function updateCameraButtons() {
+  $('cameraButton').disabled = opening;
+  $('cameraButton').textContent = stream ? '关闭摄像头' : '开启摄像头';
+  $('calibrate').disabled = !stream || !tracker || Boolean(calibration) || opening;
+  $('bodyStart').disabled = !stream || !tracker || !handTracker || !neutral || opening || Boolean(calibration);
+  $('calibrationProgress').hidden = !calibration;
+  $('previewEmpty').hidden = Boolean(stream);
+  preview.hidden = !stream;
+}
+
+function closeCamera() {
+  session++;
+  cameraRequest++;
+  opening = false;
+  stream?.getTracks().forEach(track => track.stop());
+  stream = null;
+  video.srcObject = null;
+  latestPose = landmarks = neutral = calibration = null;
+  lastVideoTime = -1;
+  lastValidAt = lastPoseAt = -Infinity;
+  updateCameraButtons();
+}
+
+async function listCameras(selected = stream?.getVideoTracks()[0]?.getSettings().deviceId || device.value) {
+  if (!navigator.mediaDevices?.enumerateDevices) return;
+  const request = ++cameraRequest;
+  const inputs = (await navigator.mediaDevices.enumerateDevices()).filter(input => input.kind==='videoinput' && input.deviceId);
+  if (request !== cameraRequest) return;
+  device.replaceChildren(new Option('系统默认摄像头',''));
+  inputs.forEach((input,index) => device.add(new Option(input.label || '视频输入 '+(index+1),input.deviceId)));
+  if (inputs.some(input => input.deviceId===selected)) device.value = selected;
+}
+
+async function createTracker(root) {
+  let expired = false;
+  let timeout;
+  const load = (async () => {
+    const vision = await import(root+'/vision_bundle.mjs');
+    const files = await vision.FilesetResolver.forVisionTasks(root+'/wasm');
+    if (expired) return null;
+    const pose = await vision.PoseLandmarker.createFromOptions(files,{
+      baseOptions:{modelAssetPath:POSE_MODEL,delegate:'CPU'},runningMode:'VIDEO',numPoses:1,
+      minPoseDetectionConfidence:.50,minPosePresenceConfidence:.50,minTrackingConfidence:.50
+    });
+    if (expired) { pose.close(); return null; }
+    try {
+      const hand = await vision.GestureRecognizer.createFromOptions(files,{
+        baseOptions:{modelAssetPath:HAND_MODEL,delegate:'CPU'},runningMode:'VIDEO',numHands:2,
+        minHandDetectionConfidence:.47,minHandPresenceConfidence:.47,minTrackingConfidence:.45
+      });
+      if (expired) { pose.close(); hand.close(); return null; }
+      return {pose,hand};
+    } catch (error) {
+      pose.close();
+      throw error;
+    }
+  })();
+  const deadline = new Promise((_,reject) => {
+    timeout = setTimeout(() => { expired = true; reject(new Error('Model load timed out')); },15000);
+  });
+  return Promise.race([load,deadline]).finally(() => clearTimeout(timeout));
+}
+
+async function getTracker() {
+  if (tracker && handTracker) return tracker;
+  modelTask ??= (async () => {
+    for (const root of VISION_ROOTS) {
+      try {
+        return await createTracker(root);
+      } catch (error) {
+        console.warn('Pose model unavailable',error);
+      }
+    }
+    return null;
+  })();
+  const models = await modelTask;
+  tracker = models?.pose ?? null;
+  handTracker = models?.hand ?? null;
+  if (!models) modelTask = null;
+  return tracker;
+}
+
+async function openCamera() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    cameraStatus('体感请用 Chrome 打开本地试玩网址，再开启摄像头。',true);
+    return;
+  }
+  const selected = device.value;
+  closeCamera();
+  const ticket = session;
+  opening = true;
+  updateCameraButtons();
+  cameraStatus('等待相机权限…');
+  try {
+    const input = selected ? {deviceId:{exact:selected}} : {};
+    let received;
+    try {
+      received = await navigator.mediaDevices.getUserMedia({
+        audio:false,video:{...input,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}}
+      });
+    } catch (error) {
+      if (session!==ticket || !['OverconstrainedError','NotReadableError','AbortError'].includes(error.name)) throw error;
+      received = await navigator.mediaDevices.getUserMedia({audio:false,video:input});
+    }
+    if (session!==ticket) {
+      received.getTracks().forEach(track => track.stop());
+      return;
+    }
+    const track = received.getVideoTracks()[0];
+    stream = received;
+    video.srcObject = stream;
+    let playbackTimeout;
+    try {
+      await Promise.race([
+        video.play(),
+        new Promise((_,reject) => {
+          playbackTimeout = setTimeout(() => reject(new DOMException('相机未输出视频','NotReadableError')),8000);
+        })
+      ]);
+    } finally {
+      clearTimeout(playbackTimeout);
+    }
+    if (session!==ticket) return;
+    track.addEventListener('ended',() => {
+      if (stream !== received) return;
+      closeCamera();
+      returnToSetup();
+      cameraStatus('相机已断开。重新连接后点击开启摄像头。',true);
+    });
+    listCameras().catch(() => {});
+    opening = false;
+    updateCameraButtons();
+    cameraStatus('正在加载身体和手势识别…');
+    const model = await getTracker();
+    if (session!==ticket) return;
+    cameraStatus(model ? (track.label || '摄像头已连接')+' · 站在画面中间，让肩膀、手肘和髋部入镜。'
+      : '体感识别加载失败。检查网络后重新开启相机。',!model);
+    updateCameraButtons();
+  } catch (error) {
+    if (session!==ticket) return;
+    closeCamera();
+    const hints = {
+      NotAllowedError:'请允许 Chrome 访问摄像头，再点开启。',
+      NotReadableError:'相机正被占用或读不到画面。关闭正在使用相机的页面后重试。',
+      NotFoundError:'未找到相机。检查 DJI 已进入 Webcam 模式并重新选择。'
+    };
+    cameraStatus(hints[error.name] || '相机启动失败。请重新选择视频输入。',true);
+  }
+}
+
+function tick(now) {
+  const dt = Math.min(.055,Math.max(0,(now-lastTick)/1000));
+  lastTick = now;
+  updatePose(now);
+  const active = !['setup','result'].includes(game.phase);
+  trackingPaused = mode==='body' && active && !['home','hit'].includes(game.phase) && now-lastValidAt>TRACKING_GRACE;
+  $('motionStatus').hidden = !trackingPaused;
+  if (trackingPaused && motion.validSince !== null) resetRecognition();
+  if (active && !trackingPaused) {
+    updateFlight(dt);
+    updateView(dt);
+  }
+  if (game.phase==='setup') drawVideoPreview();
+  if (mode==='body' && stream && ['launch','result'].includes(game.phase)) {
+    drawMirror(video,paint,W,H,landmarks,Boolean(latestPose),true);
+  } else {
+    drawFlight(game,view,now/1000);
+  }
+  requestAnimationFrame(tick);
+}
+
+$('cameraButton').onclick = () => {
+  if (stream) {
+    closeCamera();
+    cameraStatus('摄像头已关闭。');
+  } else openCamera();
+};
+device.onchange = () => { if (stream || opening) openCamera(); };
+navigator.mediaDevices?.addEventListener('devicechange',() => listCameras().catch(() => {}));
+listCameras().catch(() => {});
+$('calibrate').onclick = () => {
+  calibration = {started:null,count:0,x:0,lean:0};
+  neutral = null;
+  $('calibrationProgress').value = 0;
+  updateCameraButtons();
+  cameraStatus('在活动区中央正对屏幕，站稳约 1 秒。');
+};
+$('bodyStart').onclick = () => beginRound('body',true);
+$('keyboardStart').onclick = () => beginRound('keyboard',true);
+$('again').onclick = () => beginRound(mode);
+$('back').onclick = returnToSetup;
+$('settings').onclick = returnToSetup;
+$('sound').onclick = () => {
+  muted = !muted;
+  $('sound').setAttribute('aria-pressed',String(muted));
+  if (!muted) startAudio();
+};
+$('fullscreen').onclick = async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.documentElement.requestFullscreen();
+  } catch {
+    $('fullscreen').textContent = '用浏览器全屏';
+  }
+};
+document.addEventListener('fullscreenchange',() => {
+  $('fullscreen').textContent = document.fullscreenElement ? '退出全屏' : '全屏';
+});
+window.addEventListener('keydown',event => {
+  const {code} = event;
+  if (mode!=='keyboard' || ['setup','result','home','hit'].includes(game.phase) || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.target instanceof HTMLButtonElement && ['Space','Enter'].includes(code)) return;
+  if (['Space','KeyW','ArrowUp','KeyA','ArrowLeft','KeyD','ArrowRight','KeyS','ArrowDown','KeyE','KeyF'].includes(code)) {
+    event.preventDefault();
+    if (event.repeat || heldKeys.has(code)) return;
+    heldKeys.add(code);
+    if (['Space','KeyW','ArrowUp'].includes(code)) flap();
+    else if (['KeyA','ArrowLeft','KeyD','ArrowRight'].includes(code)) {
+      const side = ['KeyA','ArrowLeft'].includes(code) ? -1 : 1;
+      if (event.shiftKey && game.phase==='grab') beginChase(side);
+      else if (event.shiftKey && game.phase==='chase') dodge(side);
+      else steer(side);
+    }
+    else if (code==='KeyE') openClaw('keyboard');
+    else if (code==='KeyF') closeClaw('keyboard');
+    else tuck();
+  }
+});
+window.addEventListener('keyup',event => heldKeys.delete(event.code));
+window.addEventListener('blur',() => { heldKeys.clear(); if (mode === 'body') resetRecognition(); });
+window.addEventListener('pagehide',() => {
+  closeCamera();
+  if (game.phase!=='setup') returnToSetup();
+});
+updateCameraButtons();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
