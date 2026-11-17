@@ -1,6 +1,6 @@
 # GIVE ME YOUR FRIES! 🍟
 
-**Game version v2.2** · **Last updated 12 November 2026, 14:13 (UTC+8)**
+**Game version v2.3** · **Last updated 17 November 2026 (UTC+8)**
 
 [English](#english) · [简体中文](#简体中文) · [Changelog / 更新日志](CHANGELOG.md)
 
@@ -16,13 +16,13 @@ Open the [game file](GIVE_ME_YOUR_FRIES_DUO_GESTURE.html) on GitHub, choose **Do
 
 - **Solo (单人模式)** gives you one gull and one nest. In webcam mode, use the entire camera frame.
 - **Duo (双人模式)** gives each player a gull and a nest on the same map. Both players share one webcam. P1 wears a gold hat and starts on the left of the webcam preview. P2 wears a blue scarf and starts on the right. Both gulls can fly anywhere on the map.
-- **Take a photo.** Click **开启摄像头** to turn on the camera. In Solo, center your face in the guide. In Duo, each player lines up with their own circle. Click **拍摄头像** to take the photo, and check the portraits on the player cards. Click again to retake it. You can also upload a photo or click **使用默认头像** to use the default avatars. Photos stay in the current page session.
+- **Take a photo.** Click **开启摄像头** to turn on the camera. In Solo, use the center guide. In Duo, each player uses their own guide. Line up your eyebrows with the two brow lines and your mouth with the beak. Click **拍摄头像** to take the photo. Check the gull portrait on your player card as the game aligns the photo. Click again to retake it. You can also upload a photo or click **使用默认头像** to use the default avatars. Photos stay in the current page session.
 
 ![Game setup screen with Solo and Duo modes, webcam portrait guides, captured avatars, and the gesture and keyboard start buttons](docs/images/setup-and-controls.webp)
 
 ![The captured portraits on the gold-hat and blue-scarf seagulls during play](docs/images/avatar-preview.webp)
 
-*The game places each captured portrait inside its gull’s face. These screenshots use generated demo portraits.*
+*The game aligns the player’s eyebrows and mouth with the gull’s eyebrows and beak. These screenshots use generated demo portraits.*
 
 ### 3. Choose how to play
 
@@ -61,7 +61,7 @@ Click **再来一局** on the final screen to play again. During a match, **重�
 
 ## 简体中文
 
-**当前游戏版本 v2.2** · **更新时间 2026 年 11 月 12 日 14:13（UTC+8）**
+**当前游戏版本 v2.3** · **更新时间 2026 年 11 月 17 日（UTC+8）**
 
 控制海鸥飞过海港，用脚抓薯条，再带回自己的巢穴计分。可以一个人挑战，也可以和朋友在同一张地图上对战。
 
@@ -73,13 +73,13 @@ Click **再来一局** on the final screen to play again. During a match, **重�
 
 - **单人模式**有一只海鸥和一个巢穴。用手势玩时，整幅摄像头画面都可以用来控制海鸥。
 - **双人模式**有两只海鸥、两个巢穴。两人共用一个摄像头。P1 是金帽海鸥，从取景框左侧入镜，P2 是蓝巾海鸥，从右侧入镜。两只海鸥都可以飞遍同一张地图。
-- **拍摄头像。** 点击**开启摄像头**。单人把脸对准中间的圆框，双人各自对准左右两侧的圆框。点击**拍摄头像**后，可以在玩家卡片里查看结果，再点一次可以重拍。也可以上传照片，或点击**使用默认头像**跳过拍照。照片只在当前页面使用。
+- **拍摄头像。** 点击**开启摄像头**。单人用中间的取景框，双人各用左右两侧的取景框。把眉毛对准两条眉线，嘴对准鸟嘴。点击**拍摄头像**后，游戏会尝试自动调整位置，玩家卡片会显示合成后的海鸥头像。再点一次可以重拍。也可以上传照片，或点击**使用默认头像**跳过拍照。照片只在当前页面使用。
 
 ![开局界面显示单人和双人模式、摄像头取景框、拍好的头像以及手势和键盘开始按钮](docs/images/setup-and-controls.webp)
 
 ![拍好的两张脸分别出现在金帽海鸥和蓝巾海鸥上](docs/images/avatar-preview.webp)
 
-*进入游戏后，拍下来的脸会显示在对应的海鸥头上。配图使用生成的演示头像。*
+*进入游戏后，照片里的眉毛和嘴会贴合海鸥的眉毛和鸟嘴。配图使用生成的演示头像。*
 
 ### 3. 选择手势或键盘
 

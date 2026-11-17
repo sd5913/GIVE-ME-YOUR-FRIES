@@ -1,6 +1,11 @@
 # GIVE ME YOUR FRIES! 更新日志
 
-2026 年 11 月 12 日 · 当前版本 **v2.2** · [GitHub 游戏文件](https://github.com/sd5913/Fun-interactive-game-with-two-person-cameras/blob/main/GIVE_ME_YOUR_FRIES_DUO_GESTURE.html)
+2026 年 11 月 17 日 · 当前版本 **v2.3** · [GitHub 游戏文件](https://github.com/sd5913/GIVE-ME-YOUR-FRIES/blob/main/GIVE_ME_YOUR_FRIES_DUO_GESTURE.html)
+
+## v2.3 · 海鸥头像对齐
+
+- 拍照取景框加上眉线和鸟嘴轮廓。拍摄后，游戏会尝试把照片里的眉毛和嘴对齐到海鸥脸上。
+- 玩家卡片显示合成后的海鸥头像，可以在开局前查看或重拍。自动对齐不可用时，可按取景线拍摄。
 
 ## v2.2 · 游客塔防
 
