@@ -10,6 +10,7 @@ const GULL_FACE = {
 };
 const MAX_FRIES = 4, GUARD_RADIUS = 150;
 const GUARD_WARNING_SECONDS = 1.65, GUARD_IMPACT_SECONDS = .42;
+const BODY_CENTER_Y = 325;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const dist = (x, y, xx, yy) => Math.hypot(x - xx, y - yy);
 const rand = (min, max) => min + Math.random() * (max - min);
@@ -27,10 +28,11 @@ const movementKeys = ['KeyA','KeyD','KeyW','KeyS','ArrowLeft','ArrowRight','Arro
 function startGame(mode) {
   phase = 'playing';
   controlMode = mode;
+  document.body.classList.toggle('camera-game', mode === 'body');
   if (mode === 'keyboard') closeCamera();
   keys.clear();
   resetBodyInput();
-  const [x,y] = map.nest;
+  const [x,y] = mode === 'body' ? [W / 2, BODY_CENTER_Y] : map.nest;
   Object.assign(player, {x,y,carry:0,score:0,grip:false,auto:false,stun:0,invuln:0,stealClock:0});
   food = map.food.map(([x,y]) => ({x,y,count:MAX_FRIES,regen:0}));
   effects = [];
@@ -41,7 +43,7 @@ function startGame(mode) {
   $('game').hidden = false;
   $('setupButton').hidden = false;
   $('inGameHint').textContent = mode === 'body'
-    ? '侧移转向 · 双臂控制升降 · 半蹲抓取 · 站直回巢'
+    ? '侧移跟随 · 双手升降 · 半蹲抓取 · 站直回巢'
     : 'WASD / 方向键飞行 · 按住 F 抓取 · 松开 F 回巢';
   setTrackingPause('');
   announce('抓薯条，避开红圈，带回巢计分。');
@@ -66,6 +68,7 @@ function endGame() {
 
 function returnToSetup() {
   phase = 'setup';
+  document.body.classList.remove('camera-game');
   keys.clear();
   releaseGrip();
   resetBodyInput();
@@ -129,8 +132,16 @@ function updatePlayer(dt) {
     const step = distance > 0 ? Math.min(1, 640 * dt / distance) : 1;
     p.x += (homeX - p.x) * step;
     p.y += (homeY - p.y) * step;
+  } else if (controlMode === 'body') {
+    if (!poseVisible) return;
+    const blend = 1 - Math.exp(-dt * 18);
+    const targetX = W / 2 + currentInput.horizontal * 470;
+    const targetY = BODY_CENTER_Y + currentInput.vertical * 195;
+    p.x += (targetX - p.x) * blend;
+    p.y += (targetY - p.y) * blend;
+    p.grip = currentInput.crouching;
   } else {
-    const input = controlMode === 'body' ? currentInput : keyboardInput();
+    const input = keyboardInput();
     p.grip = input.crouching;
     p.x = clamp(p.x + input.horizontal * 460 * dt, 40, W - 40);
     p.y = clamp(p.y + input.vertical * 410 * dt, 100, H - 45);
@@ -201,13 +212,28 @@ const terrain = document.createElement('canvas');
 terrain.width = W;
 terrain.height = H;
 drawTerrain();
-drawNest(player);
 terrain.getContext('2d').drawImage(canvas, 0, 0);
+ctx.clearRect(0, 0, W, H);
+const cameraProps = document.createElement('canvas');
+cameraProps.width = W;
+cameraProps.height = H;
+drawNest(player);
+cameraProps.getContext('2d').drawImage(canvas, 0, 0);
 
 function render(now) {
-  drawSea(now);
-  ctx.drawImage(terrain, 0, 0);
+  if (controlMode === 'body') {
+    ctx.clearRect(0, 0, W, H);
+  } else {
+    drawSea(now);
+    ctx.drawImage(terrain, 0, 0);
+  }
+  ctx.drawImage(cameraProps, 0, 0);
   guardAttacks.forEach(drawGuardZone);
+  const target = controlMode === 'body' && !player.auto && player.stun <= 0 ? nearestTray(player) : null;
+  if (target) {
+    oval(target.x, target.y + 2, 39, 40, '#ffe19038', '#173040', 6);
+    oval(target.x, target.y + 2, 39, 40, 'transparent', '#ffe190', 3);
+  }
   food.forEach(tray => drawFood(tray));
   guards.forEach(drawGuard);
   drawBird(player, now);
@@ -218,9 +244,7 @@ function render(now) {
 const device = $('device');
 const preview = $('poseCanvas');
 const previewCtx = preview.getContext('2d');
-const video = document.createElement('video');
-video.muted = true;
-video.playsInline = true;
+const video = $('stageVideo');
 const sampleFrame = document.createElement('canvas');
 const sampleCtx = sampleFrame.getContext('2d');
 const VISION_ROOTS = [
@@ -231,6 +255,7 @@ const POSE_MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmar
 let stream = null, session = 0, opening = false, modelTask = null, tracker = null;
 let calibrating = false, calibration = createCalibration(), controller = createBodyController();
 let currentInput = null, lastPoseAt = -Infinity, lastValidAt = -Infinity, lastVideoTime = -1;
+let poseVisible = false;
 let deviceListRequest = 0;
 
 function cameraStatus(message, error = false) {
@@ -262,6 +287,7 @@ function resetBodyInput() {
   controller = createBodyController();
   currentInput = null;
   lastValidAt = -Infinity;
+  poseVisible = false;
 }
 
 function closeCamera() {
@@ -458,20 +484,18 @@ function handlePose(landmarks, now) {
       if (progress === 1) {
         calibrating = false;
         updateSetup();
-        cameraStatus('站姿校准完成。展开双臂，准备开始。');
+        cameraStatus('站姿校准完成。双手在腰前时，海鸥会停在中间高度。');
       }
     }
     return;
   }
 
   if (!sample) {
-    if (currentInput) {
-      resetBodyInput();
-      releaseGrip();
-      player.auto = false;
-    }
+    poseVisible = false;
+    controller.pendingCrouchAt = null;
     return;
   }
+  poseVisible = true;
   lastValidAt = now;
   currentInput = bodyInput(controller, sample, calibration.baseline, now);
   if (currentInput.released) releaseGrip(true);
@@ -520,7 +544,6 @@ function tick(now) {
     } else {
       resetBodyInput();
       releaseGrip();
-      player.auto = false;
       setTrackingPause('已暂停 · 让头、双手和双脚重新入镜');
     }
   }
@@ -558,7 +581,7 @@ $('calibrate').onclick = () => {
   calibration = createCalibration();
   $('progress').value = 0;
   updateSetup();
-  cameraStatus('站在活动区中央，双腿站直并保持约 1 秒。');
+  cameraStatus('站在活动区中央，双手放在腰前，站直保持约 1 秒。');
 };
 $('startBody').onclick = () => startGame('body');
 $('startKeyboard').onclick = () => startGame('keyboard');

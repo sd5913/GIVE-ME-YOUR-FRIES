@@ -5,6 +5,7 @@ const BODY_BONES = [[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],
 const CALIBRATION_MS = 1000;
 const TRACKING_MAX_AGE = 250;
 const CROUCH_HOLD_MS = 120;
+const REQUIRED_JOINTS = BODY_JOINTS.filter(i => i !== 13 && i !== 14);
 
 function midpoint(a, b) {
   return {x:(a.x + b.x) / 2, y:(a.y + b.y) / 2};
@@ -18,7 +19,7 @@ function kneeAngle(hip, knee, ankle) {
 }
 
 function readBody(landmarks, aspect) {
-  if (!landmarks || !BODY_JOINTS.every(i => {
+  if (!landmarks || !REQUIRED_JOINTS.every(i => {
     const joint = landmarks[i];
     return joint && (joint.visibility ?? 1) >= .52 &&
       joint.x > .015 && joint.x < .985 && joint.y > .015 && joint.y < .985;
@@ -53,7 +54,8 @@ function addCalibrationSample(calibration, body, now) {
     return 0;
   }
   if (reference && (Math.abs(body.x - reference.x) > reference.torso * .26 ||
-      Math.abs(body.hipY - reference.hipY) > reference.torso * .18)) {
+      Math.abs(body.hipY - reference.hipY) > reference.torso * .18 ||
+      Math.abs(body.arms - reference.arms) > .22)) {
     calibration.startedAt = null;
     calibration.samples.length = 0;
   }
@@ -62,25 +64,28 @@ function addCalibrationSample(calibration, body, now) {
   const progress = Math.min(1, (now - calibration.startedAt) / CALIBRATION_MS);
   if (progress === 1) {
     const mean = field => calibration.samples.reduce((sum, sample) => sum + sample[field], 0) / calibration.samples.length;
-    calibration.baseline = {x:mean('x'), hipY:mean('hipY'), torso:mean('torso')};
+    calibration.baseline = {x:mean('x'), hipY:mean('hipY'), torso:mean('torso'), arms:mean('arms')};
     calibration.samples.length = 0;
   }
   return progress;
 }
 
 function createBodyController() {
-  return {crouching:false, pendingCrouchAt:null};
+  return {crouching:false, pendingCrouchAt:null, needsStanding:true};
 }
 
-function deadZone(value, margin) {
-  if (Math.abs(value) <= margin) return 0;
-  return value - Math.sign(value) * margin;
+function bodyAxis(value, margin, negativeRange, positiveRange) {
+  const offset = Math.max(0, Math.abs(value) - margin);
+  const range = value < 0 ? negativeRange : positiveRange;
+  return Math.sign(value) * Math.min(1, offset / range);
 }
 
 function bodyInput(controller, body, neutral, now) {
   const drop = (body.hipY - neutral.hipY) / neutral.torso;
   let released = false;
-  if (controller.crouching) {
+  if (controller.needsStanding) {
+    if (drop < .17) controller.needsStanding = false;
+  } else if (controller.crouching) {
     if (drop < .17) {
       controller.crouching = false;
       controller.pendingCrouchAt = null;
@@ -93,9 +98,10 @@ function bodyInput(controller, body, neutral, now) {
     controller.pendingCrouchAt = null;
   }
   const shift = (body.x - neutral.x) / neutral.torso;
+  const lift = body.arms - neutral.arms;
   return {
-    horizontal:Math.max(-1, Math.min(1, deadZone(shift, .15) / .90)),
-    vertical:Math.max(-1, Math.min(1, deadZone(body.arms, .20) / .58)),
+    horizontal:bodyAxis(shift, .10, 1.08, 1.08),
+    vertical:bodyAxis(lift, .12, .62, .47),
     crouching:controller.crouching,
     released
   };
