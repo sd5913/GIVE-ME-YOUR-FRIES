@@ -2,7 +2,7 @@
 
 **Game version v2.3** · **Last updated 17 November 2026 (UTC+8)**
 
-[English](#english) · [简体中文](#简体中文) · [Changelog / 更新日志](CHANGELOG.md)
+[English](#english) · [简体中文](#简体中文) · [Changelog / 更新日志](CHANGELOG.md) · [Full-body demo / 全身体感 Demo](docs/full-body-big-screen-plan.md)
 
 ## English
 
