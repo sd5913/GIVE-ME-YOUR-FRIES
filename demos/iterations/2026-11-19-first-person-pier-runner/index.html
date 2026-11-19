@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GIVE ME YOUR FRIES! · 海鸥俯冲</title>
+<link rel="stylesheet" href="flight.css?v=3">
+</head>
+<body>
+<main id="stage" data-phase="setup" aria-label="海鸥俯冲">
+  <canvas id="flight" width="1280" height="720" aria-label="第一人称码头，屏幕两侧是海鸥的翅膀"></canvas>
+  <div class="shade"></div>
+  <div class="chrome">
+    <span class="wordmark">GIVE ME YOUR <em>FRIES!</em></span>
+    <div class="tools">
+      <button id="settings" type="button" hidden>设置</button>
+      <button id="sound" type="button" aria-pressed="false">声音</button>
+      <button id="fullscreen" type="button">全屏</button>
+    </div>
+  </div>
+
+  <section id="setup" class="sheet" aria-labelledby="title">
+    <div class="setup-copy">
+      <h1 id="title">海鸥俯冲<span>抢薯条，飞回巢。</span></h1>
+      <p class="intro">抢走游客的薯条，看他气得脸红！拍翅向上逃跑，飞越货箱、绕开招牌，把薯条带回巢。</p>
+      <dl class="controls-guide">
+        <div><dt>拍翅</dt><dd>起飞、逃跑、飞越货箱</dd></div>
+        <div><dt>侧倾</dt><dd>转向、绕开招牌</dd></div>
+        <div><dt>靠近薯条</dt><dd>键盘自动俯冲 · 体感收翅</dd></div>
+        <div><dt>抓一根</dt><dd>键盘按 E · 体感张手再握拳</dd></div>
+      </dl>
+      <div class="start-buttons">
+        <button id="bodyStart" type="button" class="primary" disabled>开始体感</button>
+        <button id="keyboardStart" type="button" class="secondary">键盘试玩</button>
+      </div>
+      <p class="keys"><kbd>空格</kbd> / <kbd>W</kbd> 拍翅、升空、逃跑<br><kbd>A</kbd> <kbd>D</kbd> 左右转向　<kbd>E</kbd> 每按一次抓一根<br>对准薯条后自动俯冲。游客变红时，立即拍翅飞走！</p>
+      <p class="keys">体感：收翅俯冲，单手张开再握拳抓一根；游客变红时双臂展开逃跑。回巢路上拍翅越过货箱，侧倾绕开招牌。</p>
+    </div>
+    <div class="camera-panel">
+      <div id="preview" class="preview">
+        <canvas id="previewCanvas" width="640" height="360" aria-label="镜像摄像头预览" hidden></canvas>
+        <div class="frame-guide" aria-hidden="true"></div>
+        <p id="previewEmpty">摄像头预览</p>
+      </div>
+      <label for="device">视频输入</label>
+      <select id="device"><option value="">系统默认摄像头</option></select>
+      <div class="camera-buttons">
+        <button id="cameraButton" type="button">开启摄像头</button>
+        <button id="calibrate" type="button" disabled>校准站位</button>
+      </div>
+      <p id="cameraStatus" class="status" role="status">用 USB 连接 DJI 并选 Webcam，开启后在上方选择对应输入。</p>
+      <progress id="calibrationProgress" value="0" max="1" aria-label="校准进度" hidden></progress>
+    </div>
+  </section>
+
+  <div id="hud" class="hud" hidden>
+    <div class="hud-stats">
+      <div><span>第 <b id="round">1</b> 趟</span><span>巢内 <b id="score">0</b></span></div>
+      <div id="timePanel" class="timer" hidden><small>回巢倒计时</small><strong id="timeText">8.0</strong></div>
+      <div id="load" class="carry" hidden>爪上 <b id="carry">0</b></div>
+    </div>
+    <div id="motionStatus" role="status" hidden>请让肩膀和髋部重新入镜</div>
+    <div id="reaction" role="status" hidden></div>
+    <div class="cue" id="cue">
+      <p id="cueText" role="status"></p><span id="cueDetail"></span>
+    </div>
+  </div>
+  <section id="result" class="result" aria-labelledby="resultTitle" hidden>
+    <p class="result-label">码头飞行</p>
+    <h2 id="resultTitle"></h2>
+    <p id="resultText"></p>
+    <div class="start-buttons">
+      <button id="again" type="button" class="primary">再飞一趟</button>
+      <button id="back" type="button" class="secondary">返回设置</button>
+    </div>
+  </section>
+</main>
+<script src="scene.js?v=5"></script>
+<script src="flight.js?v=6"></script>
+</body>
+</html>
