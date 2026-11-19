@@ -1,12 +1,41 @@
 # GIVE ME YOUR FRIES! 🍟
 
-**Game version v2.4** · **Last updated 19 November 2026 (UTC+8)**
-
-[English](#english) · [简体中文](#简体中文) · [Changelog / 更新日志](CHANGELOG.md) · [Full-body demo / 全身体感 Demo](docs/full-body-big-screen-plan.md)
+[English](#english) · [简体中文](#简体中文) · [Big-screen development plan / 大屏开发计划](docs/full-body-big-screen-plan.md) · [Changelog / 更新日志](CHANGELOG.md)
 
 ## English
 
-**First-person full-body demo · Updated 19 November 2026.** Flap to fly and escape, steal fries from a visitor who gradually turns red, then fly over crates and steer around signs on the longer pier. Body and keyboard modes share the same map. [Open the demo source](demos/gull-flight/index.html) · [Controls and local setup](docs/full-body-big-screen-plan.md) · [Previous first-person demo](demos/archive/gull-flight-before-runner-2026-11-19/index.html). Download the whole repository and serve it locally to play. The original game below is preserved.
+**A big-screen seagull game you play with your arms.** Stand in front of the camera, spread your arms like wings, and fly. The goal is to swoop down for fries, escape the visitor, and bring your haul back to the nest. The current focus is making that loop feel good for one player at exhibition distance.
+
+### Try the repository baseline
+
+The team's newer HTML prototype is awaiting upload. The links here are for the **existing repository baseline**, not that pending build. GitHub's file view does not run the game.
+
+1. Download the repository and, from its root, run `python3 -m http.server 8000 --bind 127.0.0.1`.
+2. Open the [arm-controlled flight demo](http://127.0.0.1:8000/demos/gull-flight/) in Chrome. Enable the camera, select the input, calibrate your stance, then start. The tracking models need internet on first load.
+3. For a camera-free smoke test, open the [keyboard mode](http://127.0.0.1:8000/demos/gull-flight/?mode=keyboard). It helps check the game loop, not camera controls.
+
+[Baseline source](demos/gull-flight/index.html) · [Development plan and acceptance checks](docs/full-body-big-screen-plan.md)
+
+### Earlier prototypes
+
+The [overhead full-body demo](demos/full-body/index.html), [archived flight iteration](demos/archive/gull-flight-before-runner-2026-11-19/index.html) and [Duo v2.4 hand-gesture game](GIVE_ME_YOUR_FRIES_DUO_GESTURE.html) are references, not the current development target. [Duo v2.4 instructions](#legacy-duo-v24-english) are kept below.
+
+## 简体中文
+
+**一款用手臂操控的大屏海鸥游戏。** 站在摄像头前，张开双臂像翅膀一样飞行，俯冲抢薯条、逃离游客，再把薯条带回巢穴。当前优先做好单人在展场距离下的完整体验。
+
+团队已有新版 HTML 原型，尚待上传。以下入口用于试玩**仓库现有基线版**，不是待上传的新版本。GitHub 文件预览无法运行游戏。
+
+1. 下载整个仓库，在根目录运行 `python3 -m http.server 8000 --bind 127.0.0.1`。
+2. 用 Chrome 打开[手臂体感飞行](http://127.0.0.1:8000/demos/gull-flight/)，开启并选择摄像头，校准站位后开始。首次加载识别模型需要联网。
+3. 没有摄像头时可使用[键盘模式](http://127.0.0.1:8000/demos/gull-flight/?mode=keyboard)检查玩法流程，但不能验证体感识别。
+
+[大屏开发计划与验收](docs/full-body-big-screen-plan.md) · [早期俯视体感版](demos/full-body/index.html) · [旧版双人手势游戏](GIVE_ME_YOUR_FRIES_DUO_GESTURE.html)。旧版继续保留，不作为当前开发重点。
+
+---
+
+## Legacy Duo v2.4: English
+
 
 Fly a seagull around the harbor, steal fries with its feet, and deliver them to your nest. Play a solo challenge or compete with a friend on the same map.
 
@@ -65,9 +94,8 @@ The three rounds last **65, 75, and 85 seconds**. When a round ends, the game sh
 
 Click **再来一局** on the final screen to play again. During a match, **重新开局** restarts at round one and resets the score. **模式与头像** takes you back to setup.
 
-## 简体中文
+## 旧版双人模式 v2.4：简体中文
 
-**第一人称全身体感 Demo · 更新于 2026 年 11 月 19 日。** 拍翅起飞、抢走游客的薯条，在游客逐渐变红发怒时向上逃跑，沿加长栈道飞越货箱、绕开招牌回巢。键盘与体感共用同一地图。[最新 Demo 源码](demos/gull-flight/index.html) · [动作说明与本地启动](docs/full-body-big-screen-plan.md) · [修改前第一人称副本](demos/archive/gull-flight-before-runner-2026-11-19/index.html)。下载整个仓库并在本地启动后游玩。下方原版游戏继续保留。
 
 **当前游戏版本 v2.4** · **更新时间 2026 年 11 月 19 日（UTC+8）**
 

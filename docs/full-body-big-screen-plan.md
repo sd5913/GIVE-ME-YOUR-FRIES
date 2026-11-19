@@ -2,11 +2,28 @@
 
 更新于 **2026 年 11 月 19 日（UTC+8）**
 
-## 当前版本：第一人称海鸥俯冲与回巢跑酷
+## Development plan / 开发计划
 
-最新 Demo 是独立的单人第一人称副本。玩家从海鸥视角看见自己的翅膀和鸟爪，接近游客手里的薯条，抢到后向上逃跑，再穿过加长的栈道回巢。身体互动与键盘试玩共用同一地图、游客警戒和障碍规则。
+**Direction:** One player, one big screen, one short flight. Arms should feel like wings. Get takeoff, steering, and recovery reliable before extending the pier, adding obstacles, or tuning score. Keep keyboard as a debugging and demo fallback. Duo and the older overhead demo are reference builds, not feature targets.
 
-- **[最新第一人称全身体感 Demo](../demos/gull-flight/index.html)**：开启摄像头、选择 DJI 输入、校准站位，然后点击“开始体感”。
+**Status:** The team has a newer HTML prototype waiting to be pushed. This plan does not assume its controls, assets or dependencies match the checked-in baseline. Validate the new build on its own commit before promoting it to the README's primary play link.
+
+| Order | Work | Done when |
+| --- | --- | --- |
+| P0 · Land the prototype | Once the upload limit resets, commit the HTML and any required assets on a separate branch. Document the entry point, precise inputs, model/network needs and keyboard fallback. Leave the baseline available for comparison. | A teammate can open it from a fresh checkout on the demo machine; the README identifies the tested commit and entry point. |
+| P0 · Prove arm controls on the big screen | Test the intended camera, display, player distance and lighting. Prioritize spread/flap and left/right steering, then the dive and the grab. Compare wing-fold detection with a simpler dive cue if needed. Avoid requiring a small hand gesture at a distance unless it proves reliable. | Two new players each complete takeoff → steer → collect → escape → bank one fry without coaching. Run five attempts per key action and record misses and false triggers. Brief tracking loss pauses the action and recovery does not trigger a move. |
+| P1 · Make the demo self-explanatory | Put one action cue at a time inside the game view. Show camera readiness, fry in claw versus fry banked, visitor warning and recovery. Add hands-free start/replay after calibration if the gesture is reliable; keep an operator reset and keyboard fallback. | Instructions and score are readable from the player position without scrolling. A newcomer knows how to start, can tell when a fry counts and can replay or reset. |
+| P2 · Tune flight and pacing | After the core is reliable, compare a short return with the longer pier, then adjust perceived speed, warning lead time and obstacle density. Change one variable per playtest. | Keep the version where newcomers understand why they succeeded or failed and can describe what to do differently next time. |
+
+**Evidence log:** For each run, record build/commit, browser and OS, camera and distance, lighting, viewport/fullscreen, action attempts, misses/false triggers and whether the player banked a fry without coaching. Label keyboard/simulated results separately from real-camera evidence. The [formative review](https://github.com/sd5913/GIVE-ME-YOUR-FRIES/issues/9) and [Duo camera issue](https://github.com/sd5913/GIVE-ME-YOUR-FRIES/issues/8) are useful references; Duo results do not verify big-screen tracking. The student camera self-test flagged an unresponsive wing-fold dive, but the tested build was not pinned.
+
+**中文摘要：** 先上传新版 HTML 与必要素材，明确入口、依赖和操作方式，保留现有基线供对比。然后在实际展场距离测试张臂、拍翅、转向、俯冲与抓取，记录漏判、误触和追踪恢复。请两位新玩家分别在无人提示下完成一次起飞、转向、抢薯条、逃离并入巢计分。核心动作可靠后，再做大屏内逐步提示、免手开局与重玩，并调整速度、警戒和障碍。键盘与模拟结果不等同于摄像头实测。
+
+## 仓库基线：第一人称海鸥俯冲与回巢跑酷
+
+目前仓库内的基线 Demo 是独立的单人第一人称副本。玩家从海鸥视角看见自己的翅膀和鸟爪，接近游客手里的薯条，抢到后向上逃跑，再穿过加长的栈道回巢。身体互动与键盘试玩共用同一地图、游客警戒和障碍规则。
+
+- **[仓库基线：第一人称全身体感 Demo](../demos/gull-flight/index.html)**：开启摄像头、选择 DJI 输入、校准站位，然后点击“开始体感”。
 - **[第一人称键盘试玩](../demos/gull-flight/index.html?mode=keyboard)**：无需摄像头，直接练习。
 - [旧版俯视体感 Demo](../demos/full-body/index.html)：保留摄像头背景与半蹲收集玩法；增加举手准备、站姿校准和倒数开局，结算后也可举手再玩。
 - [本次修改前的第一人称版本](../demos/archive/gull-flight-before-runner-2026-11-19/index.html)：保留用于比较操作与节奏。
