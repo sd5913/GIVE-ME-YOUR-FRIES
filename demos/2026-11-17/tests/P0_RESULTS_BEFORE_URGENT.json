@@ -1,0 +1,163 @@
+{
+  "uncaughtErrors": [],
+  "passed": 39,
+  "total": 39,
+  "results": [
+    {
+      "name": "W / Space: two distinct presses launch",
+      "pass": true
+    },
+    {
+      "name": "held W / repeat cannot launch twice",
+      "pass": true
+    },
+    {
+      "name": "A / D steering; S rejected before target ready",
+      "pass": true
+    },
+    {
+      "name": "S aligned dive reaches GRAB",
+      "pass": true
+    },
+    {
+      "name": "E / F: one grab one fry and HUD",
+      "pass": true
+    },
+    {
+      "name": "sustained F cannot repeat count",
+      "pass": true
+    },
+    {
+      "name": "short grab cooldown rejects rapid E/F",
+      "pass": true
+    },
+    {
+      "name": "same hand required; grab only in GRAB",
+      "pass": true
+    },
+    {
+      "name": "second fry alerts exactly once; max three",
+      "pass": true
+    },
+    {
+      "name": "notice / charge / impact; stationary bird BONK and drops",
+      "pass": true
+    },
+    {
+      "name": "late CHASE entry has no immunity / no teleport",
+      "pass": true
+    },
+    {
+      "name": "timely forward escape without dodge succeeds",
+      "pass": true
+    },
+    {
+      "name": "lateral A/D escape succeeds without dodge",
+      "pass": true
+    },
+    {
+      "name": "Shift+D dodge from GRAB, one use per attack",
+      "pass": true
+    },
+    {
+      "name": "Shift+A dodge in CHASE works in mirrored round",
+      "pass": true
+    },
+    {
+      "name": "wrong-way dodge still hits (no invulnerability)",
+      "pass": true
+    },
+    {
+      "name": "collision inclusive boundary and just outside",
+      "pass": true
+    },
+    {
+      "name": "resolved attack cannot execute twice",
+      "pass": true
+    },
+    {
+      "name": "carry 1: escape, HOME, result, restart",
+      "pass": true
+    },
+    {
+      "name": "carry 2: escape, HOME, result, restart",
+      "pass": true
+    },
+    {
+      "name": "carry 3: escape, HOME, result, restart",
+      "pass": true
+    },
+    {
+      "name": "failure result and restart clear all pending state",
+      "pass": true
+    },
+    {
+      "name": "body: continuous fist never scores",
+      "pass": true
+    },
+    {
+      "name": "body: stable open/fist, 1 / 2 / 3 then cap",
+      "pass": true
+    },
+    {
+      "name": "body: left open / right fist rejected",
+      "pass": true
+    },
+    {
+      "name": "body: low confidence fluctuation / held fist cannot duplicate",
+      "pass": true
+    },
+    {
+      "name": "body: missing hand cancels; returning fist needs new open",
+      "pass": true
+    },
+    {
+      "name": "body: frozen hand sample gap cancels old open",
+      "pass": true
+    },
+    {
+      "name": "body: too-fast open/fist rejected",
+      "pass": true
+    },
+    {
+      "name": "body: null / missing landmarks safely rejected",
+      "pass": true
+    },
+    {
+      "name": "body: two full low/high/low cycles launch; held low no repeats",
+      "pass": true
+    },
+    {
+      "name": "body: one arm cannot complete launch flap",
+      "pass": true
+    },
+    {
+      "name": "body: high-first recovery and jitter do not count a flap",
+      "pass": true
+    },
+    {
+      "name": "body: tuck confirmed only within ready/aligned approach",
+      "pass": true
+    },
+    {
+      "name": "body: one hand reach does not escape; two arms confirm CHASE",
+      "pass": true
+    },
+    {
+      "name": "body: slow lean steers only; fast sustained lean dodges",
+      "pass": true
+    },
+    {
+      "name": "body: losing evidence cancels grab and raised flap",
+      "pass": true
+    },
+    {
+      "name": "phase transition clears gesture candidates",
+      "pass": true
+    },
+    {
+      "name": "Canvas draws setup / launch / approach / dive / grab / chase / hit / home / result",
+      "pass": true
+    }
+  ]
+}
