@@ -74,6 +74,19 @@ button.primary,[aria-pressed="true"]{background:var(--gold)}
 .camLabels{position:absolute;bottom:4px;left:7px;right:7px;display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:#fff;text-shadow:0 1px 3px #102538}
 dialog{width:min(480px,calc(100% - 30px));border:4px solid var(--ink);border-radius:18px;background:var(--cream);color:var(--ink);padding:22px;box-shadow:6px 7px 0 #17283c}
 dialog::backdrop{background:#17283cb5}
+.lesson{padding:15px clamp(12px,2vw,23px);background:#fff5cb;border-bottom:3px solid var(--ink)}
+.lessonTop{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.lesson h2{font-size:clamp(21px,2.6vw,30px);margin:6px 0}
+.lesson p{font-size:clamp(16px,1.8vw,20px);line-height:1.55;margin:7px 0}
+.lesson small{font-size:15px;font-weight:800;color:#536778}
+.lessonPlayers{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0}
+.lessonPlayer{padding:8px 12px;border:2px solid #a58a52;border-radius:9px;background:#ffe4a0;font-weight:800}
+.lessonPlayer.blue{background:#d7ebff;border-color:#5d8eaf}
+.lessonPlayer.complete{background:#d7efcc;border-color:#4f7943}
+.lessonNote{color:#435f6c;font-size:16px!important}
+.gestureDemo{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:11px 0}
+.gestureDemo span{display:flex;align-items:center;gap:10px;border:2px solid #8ba8a9;border-radius:12px;padding:10px 15px;background:#f5faf0;font-weight:800;font-size:18px}
+.gestureDemo b{font-size:34px;line-height:1.2}
 dialog h2{margin:0 0 9px}dialog p{line-height:1.55}
 @media(max-width:650px){.photoGrid{grid-template-columns:1fr}.playerhud{padding:6px;gap:5px;flex-wrap:wrap}.tag{font-size:12px}.tag small,.action{font-size:10px}.avatarDot{width:26px;height:26px}.hudNumbers b{font-size:15px}}
 @media(max-width:500px){
@@ -140,14 +153,23 @@ dialog h2{margin:0 0 9px}dialog p{line-height:1.55}
     </div>
     <div class="startRow">
       <div class="actions">
-        <button class="primary" id="goCamera" disabled>手势开始</button>
-        <button id="goKeyboard" disabled>键盘开始</button>
+        <button class="primary" id="goCamera" disabled>摄像头手势教学</button>
+        <button id="goKeyboard" disabled>键盘教学</button>
       </div>
       <p class="help" id="setupHint" role="status">拍摄、上传或选择默认头像后开始。</p>
     </div>
   </section>
 
   <section class="game" id="game" aria-label="海鸥薯条大赛" hidden>
+    <section class="lesson" id="lesson" aria-labelledby="lessonTitle" hidden>
+      <div class="lessonTop"><small id="lessonStep"></small><button id="skipLesson">跳过练习，开始比赛</button></div>
+      <h2 id="lessonTitle"></h2>
+      <p id="lessonText"></p>
+      <div class="gestureDemo" id="gestureDemo" aria-label="本步手势示范" hidden></div>
+      <div class="lessonPlayers" id="lessonPlayers" aria-live="polite"></div>
+      <p class="lessonNote" id="lessonNote"></p>
+      <button class="primary" id="lessonNext"></button>
+    </section>
     <div class="ribbon">
       <div class="playerhud">
         <span class="avatarDot"><span>🐤</span><img id="hudPhoto1" alt="" hidden></span>
@@ -256,6 +278,7 @@ let mode = 'duo', phase = 'setup', controlMode = 'keyboard';
 let level = 0, remain = 65, time = 0, last = performance.now();
 let food = [], guards = [], guardAttacks = [], effects = [], trayDrag = null;
 let defaultsAccepted = false, muted = false, audio = null;
+let lesson = null;
 const keys = new Set();
 const activePlayers = () => mode === 'solo' ? [players[0]] : players;
 const nestXY = p => maps[level].nests[p.id];
@@ -286,7 +309,7 @@ function updateSetup() {
   $('duoMode').disabled = starting;
   $('snapFaces').disabled = video.readyState < 2 || !stream || starting;
   $('setupHint').textContent = starting ? '正在准备手势模式，也可以直接开始键盘模式。' :
-    ready ? '头像已就绪，可以开始。' : '拍摄、上传或选择默认头像后开始。';
+    ready ? '头像已就绪。选择摄像头手势教学或键盘教学，练习完成后自动开赛。' : '拍摄、上传或选择默认头像后开始。';
 }
 
 function updateHUD() {
@@ -307,7 +330,8 @@ function updateHUD() {
     actionLabel.textContent = action;
     actionLabel.classList.toggle('danger', Boolean(warning));
   }
-  $('clockText').textContent = '第 ' + (level + 1) + ' / ' + maps.length + ' 关 · ' + Math.ceil(remain) + ' 秒';
+  $('clockText').textContent = lesson ? '新手练习 · 比赛尚未开始' :
+    '第 ' + (level + 1) + ' / ' + maps.length + ' 关 · ' + Math.ceil(remain) + ' 秒';
 }
 
 function setControl(next) {
@@ -320,6 +344,7 @@ function setControl(next) {
     ? (mode === 'solo' ? '在整个镜头内' : '在各自半边镜头内') + '张手飞行，捏合抓取，松手回巢。'
     : 'P1 用 WASD 飞行，按住 F 抓取。' + (mode === 'duo' ? 'P2 用方向键飞行，按住 K 抓取。' : '') + '松键回巢。';
   $('inGameHint').textContent = flightHint + '用鼠标或手指把薯条盒摆在陆地上。游客警戒时，倒计时结束前飞出红圈。';
+  if (lesson) updateLessonText();
 }
 
 function setupRound(n) {
@@ -344,6 +369,8 @@ function setupRound(n) {
 }
 
 function resetMatch() {
+  lesson = null;
+  $('lesson').hidden = true;
   for (const p of players) p.total = 0;
   setupRound(0);
 }
@@ -508,8 +535,13 @@ function updatePlayer(p, dt) {
       p.aimY = homeY;
     }
     p.auto = false;
+    if (lesson && (lesson.step === 2 || lesson.step === 3)) {
+      lesson.banked.add(p.id);
+      if (lesson.step === 3) lesson.done.add(p.id);
+    }
   }
 
+  if (lesson && (lesson.step !== 2 || lesson.done.has(p.id))) return;
   const tray = p.grip && p.carry < MAX_FRIES ? nearestTray(p) : null;
   if (!tray) {
     p.stealClock = 0;
@@ -523,8 +555,11 @@ function updatePlayer(p, dt) {
   if (tray.count === 0) tray.regen = 4;
   sparkle(p.x, p.y + 37, '#ffe39a', 8);
   sound('steal');
-  if (p.carry === MAX_FRIES) announce('🍟 ' + playerName(p) + '抓满了，松手回巢！');
-  beginGuardWarning(tray, p);
+  if (lesson?.step === 2) lesson.done.add(p.id);
+  else {
+    if (p.carry === MAX_FRIES) announce('🍟 ' + playerName(p) + '抓满了，松手回巢！');
+    beginGuardWarning(tray, p);
+  }
 }
 
 function nearestTray(p) {
@@ -597,7 +632,208 @@ function updateGuardAttacks(active) {
   if (struck.size) updateHUD();
 }
 
+const lessonTargets = [[260,418],[850,403]];
+
+function startLesson() {
+  resetMatch();
+  lesson = {step:0,done:new Set(),banked:new Set(),retry:new Set(),lastStatus:''};
+  food = lessonTargets.slice(0,activePlayers().length).map(([x,y],id) => ({id,x,y:y+28,count:4,regen:0}));
+  $('lesson').hidden = false;
+  setLessonStep(0);
+  $('lessonTitle').scrollIntoView({block:'nearest'});
+}
+
+function setLessonStep(step) {
+  lesson.step = step;
+  lesson.advanceIn = step === 5 ? 3 : null;
+  lesson.done.clear();
+  if (step === 3) for (const id of lesson.banked) lesson.done.add(id);
+  lesson.retry.clear();
+  lesson.lastStatus = '';
+  guardAttacks = [];
+  if (step === 0 || step === 5) {
+    keys.clear();
+    for (const p of activePlayers()) clearTracking(p);
+  }
+  if (step === 4) {
+    keys.clear();
+    for (const p of activePlayers()) {
+      const [x,y] = lessonTargets[p.id];
+      clearTracking(p);
+      Object.assign(p,{x,y,aimX:x,aimY:y,carry:1,stun:0});
+      addLessonWarning(p);
+    }
+  }
+  phase = 'tutorial';
+  updateLessonText();
+  updateLessonStatus();
+  updateHUD();
+}
+
+function updateLessonText() {
+  const step = lesson.step;
+  const camera = controlMode === 'camera';
+  const duo = mode === 'duo';
+  const flight = camera
+    ? (duo ? '两人各在镜头自己的半边伸出一只手，' : '在镜头内伸出一只手，')+'张开手掌并移动。'
+    : 'P1 用 WASD 移动。'+(duo ? 'P2 用方向键移动。' : '');
+  const grab = camera ? '拇指和食指捏合，保持片刻。' : 'P1 按住 F。'+(duo ? 'P2 按住 K。' : '');
+  const deposit = camera ? '手留在镜头里，把捏合的两根手指松开。' : '松开 F'+(duo ? ' 或 K' : '')+'。';
+  const pages = [
+    [camera ? '先让摄像头认出你的手' : '先认出自己的海鸥',
+      camera ? (duo ? 'P1 在镜头左半边、P2 在右半边，各伸出一只张开的手。' : '在镜头内伸出一只张开的手。')+
+        '先看实时画面中的手部描线和下方识别状态。金帽是 P1'+(duo ? '，蓝围巾是 P2。' : '。') :
+        'P1 是戴金帽的海鸥，巢穴在左下方。'+(duo ? 'P2 是戴蓝围巾的海鸥，巢穴在右下方。两人共用这张地图。' : ''),
+      camera ? '保持手掌完整入镜。'+(duo ? '两只手都被识别后，自动进入移动练习。' : '识别到手后，自动进入移动练习。') :
+        '先找到海鸥头顶和巢穴上的 P1'+(duo ? '、P2 标记。' : ' 标记。')],
+    ['飞到自己的练习圈',
+      flight+'把海鸥移进地图上与自己颜色对应的圈里。',
+      '金色圈属于 P1。'+(duo ? '蓝色圈属于 P2。两人都到达后自动继续。' : '到达练习圈后自动继续。')],
+    ['靠近薯条盒，抓一根',
+      '练习圈旁边就是薯条盒。'+grab+'成功后，你会看见薯条抓在海鸥脚上。',
+      '这一步先练抓取。每人抓到一根就会继续。'],
+    ['松手，让海鸥回巢',
+      deposit+'海鸥会自动带着薯条飞回自己的巢穴。',
+      '“脚抓”是身上带的数量，“分”是已经送进巢里的数量。'+(camera ? '手离开镜头会停住，重新入镜后再捏合、松开即可继续回巢。' : '')],
+    ['游客发现了！飞出红圈',
+      flight+'赶在红圈倒计时归零前飞出去。这次给你 5 秒。',
+      '被击中会掉落脚上的薯条，已经入巢的分数保留。练习没躲过会再给一次机会。正式第一关有 1.65 秒。'],
+    ['准备好，开始抢薯条',
+      '你已经完成飞行、抓取、回巢和躲避练习。正式比赛中，抓到第一根薯条就会触发游客警戒。',
+      '3 秒后自动开始第一关。练习得分在开局时归零。']
+  ];
+  const [title,text,note] = pages[step];
+  $('lessonStep').textContent = step === 0 ? '开局前指导' : step === 5 ? '练习完成' : '练习 '+step+' / 4';
+  $('lessonTitle').textContent = title;
+  $('lessonText').textContent = text;
+  $('lessonNote').textContent = note;
+  const demos = [
+    [['🖐️','完整伸手入镜']],
+    [['🖐️','张手，缓慢移动']],
+    [['🤏','拇指与食指捏合']],
+    [['🤏','先捏合'],['🖐️','松开手指，手留在镜头内']],
+    [['🖐️','张手移动，飞出红圈']],
+    []
+  ];
+  $('gestureDemo').hidden = !camera || step === 5;
+  $('gestureDemo').replaceChildren(...(camera ? demos[step] : []).map(([symbol,instruction])=>{
+    const item = document.createElement('span');
+    const icon = document.createElement('b');
+    icon.textContent = symbol;
+    icon.setAttribute('aria-hidden','true');
+    item.append(icon,document.createTextNode(instruction));
+    return item;
+  }));
+  if (camera && step<5) $('lessonStep').textContent = '摄像头手势教学 · '+(step === 0 ? '检查入镜' : '练习 '+step+' / 4');
+  $('lessonNext').hidden = step !== 0 || camera;
+  $('lessonNext').textContent = '开始飞行练习';
+  $('lessonNext').onclick = () => setLessonStep(1);
+}
+
+function updateLessonStatus() {
+  const active = activePlayers();
+  const state = lesson.step+':'+active.map(p=>lesson.done.has(p.id)+','+lesson.retry.has(p.id)+','+
+    (controlMode === 'camera' && !p.seen)).join('|');
+  if (state === lesson.lastStatus) return;
+  lesson.lastStatus = state;
+  $('lessonPlayers').replaceChildren(...active.map(p => {
+    const complete = lesson.done.has(p.id);
+    const label = document.createElement('span');
+    label.className = 'lessonPlayer'+(p.id ? ' blue' : '')+(complete ? ' complete' : '');
+    let status = complete ? '完成' : '练习中';
+    if (lesson.step === 0) status = controlMode === 'camera' ? (p.seen ? '已识别到手' : '请伸手入镜') : 'P'+(p.id+1);
+    else if (lesson.step === 5) status = 'P'+(p.id+1);
+    else if (controlMode === 'camera' && !p.seen) status = '请伸手入镜';
+    else if (lesson.retry.has(p.id)) status = '再试一次，飞出红圈';
+    label.textContent = playerName(p)+' · '+status;
+    return label;
+  }));
+}
+
+function addLessonWarning(p) {
+  const guard = guards[p.id % guards.length];
+  const tray = food[p.id];
+  guardAttacks.push({guard,tray,trayX:tray.x,trayY:tray.y,x:p.x,y:p.y+28,
+    strikeAt:time+5,fired:false,learner:p.id});
+}
+
+function updateLesson(dt) {
+  if (phase !== 'tutorial') return;
+  const step = lesson.step;
+  updateLessonStatus();
+  if (step === 0) {
+    if (controlMode === 'camera') {
+      const recognized = activePlayers().every(p=>p.seen);
+      lesson.handReadyTime = recognized ? (lesson.handReadyTime || 0)+dt : 0;
+      if (lesson.handReadyTime>=.7) setLessonStep(1);
+    }
+    return;
+  }
+  if (lesson.advanceIn !== null) {
+    lesson.advanceIn = Math.max(0,lesson.advanceIn-dt);
+    if (step === 5) {
+      $('lessonNote').textContent = Math.ceil(lesson.advanceIn)+' 秒后自动开始第一关。练习得分在开局时归零。';
+    }
+    if (lesson.advanceIn === 0) {
+      if (step === 5) resetMatch();
+      else setLessonStep(step+1);
+    }
+    return;
+  }
+  const active = activePlayers();
+  if (controlMode === 'camera' && active.some(p=>!p.seen)) return;
+  time += dt;
+  for (const p of active) {
+    updatePlayer(p,dt);
+    if (step === 1 && dist(p.x,p.y,...lessonTargets[p.id]) < 53) lesson.done.add(p.id);
+    if (step === 4 && !lesson.done.has(p.id)) {
+      const attack = guardAttacks.find(attack=>attack.learner===p.id);
+      if (dist(p.x,p.y+28,attack.x,attack.y) > GUARD_RADIUS+8) {
+        lesson.done.add(p.id);
+        guardAttacks = guardAttacks.filter(item=>item!==attack);
+        sound('deposit');
+      } else if (time >= attack.strikeAt) {
+        lesson.retry.add(p.id);
+        guardAttacks = guardAttacks.filter(item=>item!==attack);
+        addLessonWarning(p);
+        announce(playerName(p)+'再试一次，朝红圈外移动。巢里的分数会保留。');
+      }
+    }
+  }
+  effects = effects.filter(effect => (effect.life -= dt)>0);
+  updateHUD();
+  updateLessonStatus();
+  if (active.every(p=>lesson.done.has(p.id))) {
+    if (step === 2) { setLessonStep(3); return; }
+    lesson.advanceIn = step === 3 ? 1.2 : .8;
+    $('lessonNote').textContent = (mode === 'duo' ? '两人均已完成' : '已完成')+'，即将自动继续…';
+  }
+}
+
+function drawLessonTargets(now) {
+  if (lesson.step === 0 || lesson.step === 5) {
+    for (const p of activePlayers()) {
+      const [x,y] = nestXY(p);
+      oval(x,y+9,60,48,'#fff2a139',p.id ? '#5cafea' : '#ffe064',5);
+    }
+  }
+  if (lesson.step !== 1 && lesson.step !== 2) return;
+  for (const p of activePlayers()) {
+    if (lesson.done.has(p.id)) continue;
+    const [x,y] = lessonTargets[p.id];
+    const color = p.id ? '#67baff' : '#ffe285';
+    const radius = 45+3*Math.sin(now*4);
+    oval(x,y+20,radius,radius*.63,'#ffffff37','#243d52',7);
+    oval(x,y+20,radius,radius*.63,'transparent',color,4);
+    rr(x-40,y-91,80,26,7,color,'#243d52',2);
+    label('P'+(p.id+1)+' 练习圈',x,y-78,14);
+  }
+}
+
+$('skipLesson').onclick = resetMatch;
+
 function update(dt) {
+  if (lesson) { updateLesson(dt); return; }
   if (phase !== 'playing') return;
   time += dt;
   remain = Math.max(0, remain - dt);
@@ -670,7 +906,7 @@ function cancelTrayDrag() {
 }
 
 canvas.addEventListener('pointerdown', event => {
-  if (phase !== 'playing' || trayDrag || event.button !== 0) return;
+  if (lesson || phase !== 'playing' || trayDrag || event.button !== 0) return;
   const [x, y] = pointerXY(event);
   const tray = [...food].reverse().find(f =>
     x >= f.x + trayBounds.left && x <= f.x + trayBounds.right &&
@@ -988,6 +1224,7 @@ function render(now) {
   for (const p of activePlayers()) drawBird(p, now);
   for (const e of effects) oval(e.x, e.y, e.r, e.r * .9, e.color);
   for (const attack of guardAttacks) drawGuardCue(attack);
+  if (lesson) drawLessonTargets(now);
   if (trayDrag) {
     const {tray, x, y, valid} = trayDrag;
     ctx.save();
@@ -1531,7 +1768,7 @@ function showGame(nextControl, retry = false) {
   $('camLabels').hidden = false;
   $('retryModel').hidden = !retry;
   setControl(nextControl);
-  resetMatch();
+  startLesson();
 }
 
 async function startGesture() {
@@ -1545,8 +1782,13 @@ async function startGesture() {
   if (request !== startRequest) return;
   starting = false;
   updateSetup();
-  if (tracking) cameraStatus('手势识别已就绪。');
-  showGame(tracking ? 'camera' : 'keyboard', cameraReady && !tracking);
+  if (!tracking) {
+    cameraStatus(cameraReady ? '手势模型尚未就绪。请检查网络后重试摄像头手势教学，也可以选择键盘教学。' :
+      '摄像头尚未开启。请检查权限后重试摄像头手势教学，也可以选择键盘教学。',true);
+    return;
+  }
+  cameraStatus('手势识别已就绪。');
+  showGame('camera');
 }
 
 function startKeyboard() {
@@ -1559,6 +1801,8 @@ function startKeyboard() {
 }
 
 function showSetup() {
+  lesson = null;
+  $('lesson').hidden = true;
   phase = 'setup';
   keys.clear();
   cancelTrayDrag();
@@ -1577,25 +1821,25 @@ function showSetup() {
 
 const isGameKey = code => keyBindings.some(binding => Object.values(binding).includes(code));
 window.addEventListener('keydown', event => {
-  if (phase !== 'playing' || controlMode !== 'keyboard' || !isGameKey(event.code) ||
+  if (!['playing','tutorial'].includes(phase) || controlMode !== 'keyboard' || !isGameKey(event.code) ||
       event.target instanceof HTMLInputElement || event.altKey || event.metaKey || event.ctrlKey) return;
   event.preventDefault();
   keys.add(event.code);
 });
 window.addEventListener('keyup', event => {
   const wasDown = keys.delete(event.code);
-  if (!wasDown || phase !== 'playing' || controlMode !== 'keyboard') return;
+  if (!wasDown || !['playing','tutorial'].includes(phase) || controlMode !== 'keyboard') return;
   const player = activePlayers().find(p => keyBindings[p.id].grip === event.code);
   if (player) releaseGrip(player, true);
 });
 window.addEventListener('blur', () => {
-  if (phase !== 'playing') return;
+  if (!['playing','tutorial'].includes(phase)) return;
   keys.clear();
   cancelTrayDrag();
   for (const p of activePlayers()) clearTracking(p);
 });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && phase === 'playing') {
+  if (document.hidden && ['playing','tutorial'].includes(phase)) {
     keys.clear();
     for (const p of activePlayers()) clearTracking(p);
   }
@@ -1647,6 +1891,7 @@ $('sound').onclick = () => {
   }
 };
 $('rules').onclick = () => {
+  if (lesson) { $('lessonTitle').scrollIntoView({block:'nearest'}); return; }
   pauseGame();
   const controlTip = mode === 'duo' ? '双人各用镜头一侧，共用一张地图；俯冲可撞掉对手抓到的薯条。' : '单人使用整幅镜头，避开码头游客。';
   showDialog('玩法', '张手移动，捏合抓薯条，手留在镜头内松开就会回巢。' + controlTip +
@@ -1656,6 +1901,7 @@ $('rules').onclick = () => {
   $('dialogClose').hidden = true;
 };
 $('restart').onclick = () => {
+  if (lesson) { startLesson(); return; }
   pauseGame();
   showDialog('重新开局？', '从第一关重新开始，累计分数归零。', '确认重开', resetMatch, true);
 };
@@ -1698,7 +1944,7 @@ window.addEventListener('pagehide', () => {
 function loop(now) {
   const dt = Math.min(.04, (now - last) / 1000);
   last = now;
-  if (phase === 'playing') {
+  if (phase === 'playing' || phase === 'tutorial') {
     updateCamera(now);
     update(dt);
   }

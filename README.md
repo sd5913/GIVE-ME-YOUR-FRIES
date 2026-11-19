@@ -1,6 +1,6 @@
 # GIVE ME YOUR FRIES! 🍟
 
-**Game version v2.3** · **Last updated 17 November 2026 (UTC+8)**
+**Game version v2.4** · **Last updated 19 November 2026 (UTC+8)**
 
 [English](#english) · [简体中文](#简体中文) · [Changelog / 更新日志](CHANGELOG.md) · [Full-body demo / 全身体感 Demo](docs/full-body-big-screen-plan.md)
 
@@ -28,8 +28,12 @@ Open the [game file](GIVE_ME_YOUR_FRIES_DUO_GESTURE.html) on GitHub, choose **Do
 
 | Start option | What to do |
 | --- | --- |
-| **Gesture start (手势开始)** | Allow camera access and wait for the hand-tracking model to load. The first load requires internet access. In Duo, each player holds one hand on their side of the preview. The outline over each hand shows which gull it controls. |
-| **Keyboard start (键盘开始)** | Start once your avatars are ready. For a quick keyboard test, select the default avatars and choose this button. |
+| **Camera gesture tutorial (摄像头手势教学)** | Allow camera access and wait for the hand-tracking model to load. The first load requires internet access. In Duo, each player holds one hand on their side of the preview. The outline over each hand shows which gull it controls. The tutorial waits for hand detection before proceeding. |
+| **Keyboard tutorial (键盘教学)** | Select your avatars or the default portraits, then practice using the keyboard. |
+
+The tutorial guides you through identifying your gull and nest, flying into your colored practice circle, collecting one fry, releasing to return home, and escaping a visitor warning circle. Each step checks the actual action. Duo waits for both players to finish. Completed exercises advance automatically, and the final three-second countdown starts round one.
+
+The match timer stays paused during practice. The dodge exercise gives five seconds and repeats when needed. Practice scores reset when the match begins. Use **跳过练习，开始比赛** to begin immediately. If the camera or model cannot start, setup displays a message so you can retry or choose the keyboard tutorial.
 
 If you are already playing with gestures and want to change controls, click **切换键盘** to switch to the keyboard.
 
@@ -61,7 +65,7 @@ Click **再来一局** on the final screen to play again. During a match, **重�
 
 ## 简体中文
 
-**当前游戏版本 v2.3** · **更新时间 2026 年 11 月 17 日（UTC+8）**
+**当前游戏版本 v2.4** · **更新时间 2026 年 11 月 19 日（UTC+8）**
 
 控制海鸥飞过海港，用脚抓薯条，再带回自己的巢穴计分。可以一个人挑战，也可以和朋友在同一张地图上对战。
 
@@ -85,8 +89,12 @@ Click **再来一局** on the final screen to play again. During a match, **重�
 
 | 开始方式 | 怎么操作 |
 | --- | --- |
-| **手势开始** | 允许摄像头权限，等待手势模型加载。首次加载需要联网。双人各在取景框自己的半边伸出一只手，描线颜色对应各自的海鸥。 |
-| **键盘开始** | 头像准备好就可以开始。想先用键盘试玩，可以选择默认头像，再点这个按钮。 |
+| **摄像头手势教学** | 允许摄像头权限，等待手势模型加载。首次加载需要联网。双人各在取景框自己的半边伸出一只手，描线颜色对应各自的海鸥。教学先显示识别状态，识别到手后自动开始移动练习。 |
+| **键盘教学** | 头像准备好后进入键盘练习。可以选择默认头像直接试玩。 |
+
+教学依次带你认出海鸥和巢穴、飞入对应颜色的练习圈、抓一根薯条、松手回巢和飞出游客红圈。每一步按实际操作判断是否完成，双人等待两人都完成后自动继续，最后倒数 3 秒自动开始第一关。
+
+练习期间暂停比赛计时，躲避练习提供 5 秒并允许重试。正式开局时练习分数归零。熟悉操作后可点**跳过练习，开始比赛**。摄像头或模型未能启动时，设置页会显示提示，可以重试或选择键盘教学。
 
 手势游玩过程中，可以点击**切换键盘**改用键盘。
 
