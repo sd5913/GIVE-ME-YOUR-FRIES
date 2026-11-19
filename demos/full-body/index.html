@@ -49,6 +49,8 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #167
 #message{font-weight:750}
 #inGameHint{font-size:14px}
 #action1.danger{color:var(--danger)}
+#remoteStart{font-size:clamp(18px,2.5vw,29px);font-weight:850;line-height:1.4;background:#fff0bd;border:2px solid var(--ink);border-radius:10px;padding:12px}
+#remoteResultStatus{font-weight:800;line-height:1.5}
 #stageVideo{display:none}
 body.camera-game{overflow:hidden}
 .camera-game #game{position:fixed;inset:0;border:0;border-radius:0;box-shadow:none;background:#172f39}
@@ -100,8 +102,10 @@ dialog::backdrop{background:#152e40ad}
       <p>用 USB-C 数据线连接 DJI Osmo Pocket 4P，在相机上选 <strong>Webcam</strong>。用 Chrome 打开本页并允许摄像头权限，然后在视频输入中选择 DJI。</p>
       <div class="controls">
         <button class="primary" id="startBody" type="button" disabled>开始体感</button>
-        <button id="startKeyboard" type="button">键盘试玩</button>
+        <button id="startKeyboard" type="button">第一人称 · 键盘试玩</button>
+        <button id="startLegacyKeyboard" type="button">旧版俯视 · 键盘试玩</button>
       </div>
+      <p id="remoteStart" role="status" hidden>走到游玩位置，双手举过肩膀保持 1 秒，即可准备开局。</p>
     </div>
     <div class="setup-camera">
       <div id="cameraView">
@@ -140,6 +144,7 @@ dialog::backdrop{background:#152e40ad}
 <dialog id="result">
   <h2>挑战结束</h2>
   <p id="resultText"></p>
+  <p id="remoteResultStatus" role="status" hidden></p>
   <div class="controls">
     <button id="again" type="button" class="primary">再玩一局</button>
     <button id="resultSetup" type="button">返回设置</button>
@@ -147,6 +152,6 @@ dialog::backdrop{background:#152e40ad}
 </dialog>
 <script src="harbor.js?v=1"></script>
 <script src="pose-controls.js?v=2"></script>
-<script src="demo.js?v=3"></script>
+<script src="demo.js?v=5"></script>
 </body>
 </html>

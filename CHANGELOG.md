@@ -2,6 +2,25 @@
 
 2026 年 11 月 19 日 · 当前版本 **v2.4** · [GitHub 游戏文件](https://github.com/sd5913/GIVE-ME-YOUR-FRIES/blob/main/GIVE_ME_YOUR_FRIES_DUO_GESTURE.html)
 
+## Full-body Demo · 第一人称回巢跑酷 · 2026-11-19
+
+- 新增独立 `demos/gull-flight/` 入口；键盘与身体互动共用第一人称长栈道、游客发怒和回巢障碍。
+- 简化键盘：空格 / W 拍翅与逃跑，A / D 转向，E 每次抓一根；对准薯条后自动俯冲。取消 Shift 组合闪避。
+- 原蓝色游客逐渐变红并生气，第二根薯条触发约 2.8 秒警戒；展翅向上逃跑，替代海边突然弹出的攻击者。
+- 加长栈道，回巢限时 20 秒，新增拍翅飞越货箱与侧倾绕开招牌；擦碰只掉一根携带薯条并短时减速，巢内得分保留。
+- 旧版俯视体感新增举手准备、自动校准、3 秒倒数开局及结算后举手重玩，并提供明确的第一人称键盘入口。
+- 更新全身体感计划与 README 入口。保留原版 v2.4、旧俯视 Demo 及 `demos/archive/gull-flight-before-runner-2026-11-19/` 修改前第一人称副本。
+- 通过键盘浏览器检查与体感模拟动作检查；DJI 摄像头实机效果待验证。
+
+### English
+
+- Added a separate first-person solo demo with a shared map and rules for keyboard and body controls.
+- Reduced keyboard actions to flap/escape (Space or W), steer (A/D), and grab one fry (E); diving is automatic when aligned.
+- The existing blue visitor gradually turns red. Collecting the second fry starts an approximately 2.8-second warning; spreading wings escapes upward.
+- Extended the pier with a 20-second return timer, crates to fly over, and signs to steer around. An obstacle collision drops one carried fry and briefly slows flight; banked scores remain safe.
+- Added hands-free preparation, calibration, countdown and replay to the legacy overhead demo. Archived the previous first-person prototype separately.
+- Checked browser keyboard flows and simulated body controls. Real DJI camera validation remains pending.
+
 ## v2.4 · 开局前分步教学 · 2026-11-19
 
 - 新增“摄像头手势教学”和“键盘教学”入口，完成模式与头像设置后进入练习。

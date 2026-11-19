@@ -26,6 +26,9 @@ const keys = new Set();
 const movementKeys = ['KeyA','KeyD','KeyW','KeyS','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyF'];
 
 function startGame(mode) {
+  resetRemoteStart();
+  $('result').close();
+  calibrating = false;
   phase = 'playing';
   controlMode = mode;
   document.body.classList.toggle('camera-game', mode === 'body');
@@ -63,10 +66,13 @@ function endGame() {
   releaseGrip();
   $('resultText').textContent = '本局带回巢的薯条：' + player.score + ' 根。';
   $('result').showModal();
+  updateSetup();
+  remoteStatus('再玩一局 · 双手举过肩膀保持 1 秒，然后放回腰前');
   sound('finish');
 }
 
 function returnToSetup() {
+  resetRemoteStart();
   phase = 'setup';
   document.body.classList.remove('camera-game');
   keys.clear();
@@ -257,6 +263,61 @@ let calibrating = false, calibration = createCalibration(), controller = createB
 let currentInput = null, lastPoseAt = -Infinity, lastValidAt = -Infinity, lastVideoTime = -1;
 let poseVisible = false;
 let deviceListRequest = 0;
+let remoteStart = {stage:'idle',raisedAt:null,deadline:0};
+
+function resetRemoteStart() {
+  remoteStart = {stage:'idle',raisedAt:null,deadline:0};
+}
+
+function remoteStatus(message) {
+  for (const id of ['remoteStart','remoteResultStatus']) {
+    const element = $(id);
+    if (element.textContent !== message) element.textContent = message;
+  }
+}
+
+function updateRemoteStart(sample, landmarks, now) {
+  if (!sample || document.hidden) {
+    if (remoteStart.stage !== 'idle') {
+      calibrating = false;
+      resetRemoteStart();
+      updateSetup();
+    }
+    remoteStart.raisedAt = null;
+    remoteStatus('让头、双手和双脚完整入镜，再举起双手准备开局。');
+    return;
+  }
+  if (remoteStart.stage === 'countdown') {
+    const seconds = Math.max(0,Math.ceil((remoteStart.deadline-now)/1000));
+    remoteStatus(seconds+' 秒后开始 · 站稳，双手放在腰前');
+    if (now >= remoteStart.deadline) startGame('body');
+    return;
+  }
+  if (remoteStart.stage === 'calibrate') return;
+  const shoulders = midpoint(landmarks[11],landmarks[12]);
+  const raised = landmarks[15].y<shoulders.y-sample.torso*.12 &&
+    landmarks[16].y<shoulders.y-sample.torso*.12;
+  if (remoteStart.stage === 'lower') {
+    remoteStatus('准备好了！双手放在腰前，站直保持约 1 秒。');
+    if (sample.arms>.30 && sample.arms<1.45 && sample.knees>=155) {
+      remoteStart.stage = 'calibrate';
+      calibration = createCalibration();
+      calibrating = true;
+      $('progress').value = 0;
+      updateSetup();
+      cameraStatus('正在游玩位置校准站姿…');
+    }
+    return;
+  }
+  if (raised) {
+    remoteStart.raisedAt ??= now;
+    remoteStatus('双手保持举起 · '+Math.min(100,Math.floor((now-remoteStart.raisedAt)/10))+'%');
+    if (now-remoteStart.raisedAt>=1000) remoteStart.stage = 'lower';
+  } else {
+    remoteStart.raisedAt = null;
+    remoteStatus('走到游玩位置，双手举过肩膀保持 1 秒，即可准备开局。');
+  }
+}
 
 function cameraStatus(message, error = false) {
   $('cameraStatus').textContent = message;
@@ -274,6 +335,8 @@ function updateSetup() {
   preview.hidden = !stream;
   $('cameraMeta').hidden = !stream;
   $('progress').hidden = !calibrating;
+  $('remoteStart').hidden = !stream || !tracker;
+  $('remoteResultStatus').hidden = controlMode !== 'body' || !stream || !tracker;
 }
 
 function setTrackingPause(message) {
@@ -291,6 +354,7 @@ function resetBodyInput() {
 }
 
 function closeCamera() {
+  resetRemoteStart();
   session++;
   deviceListRequest++;
   opening = false;
@@ -476,8 +540,10 @@ function drawPreview(landmarks, valid) {
 function handlePose(landmarks, now) {
   const aspect = sampleFrame.width / sampleFrame.height;
   const sample = readBody(landmarks, aspect);
-  if (phase === 'setup') {
+  if (phase === 'setup' || (phase === 'result' && controlMode === 'body')) {
     drawPreview(landmarks, sample);
+    updateRemoteStart(sample,landmarks,now);
+    if (phase === 'playing') return;
     if (calibrating) {
       const progress = addCalibrationSample(calibration, sample, now);
       $('progress').value = progress;
@@ -485,6 +551,11 @@ function handlePose(landmarks, now) {
         calibrating = false;
         updateSetup();
         cameraStatus('站姿校准完成。双手在腰前时，海鸥会停在中间高度。');
+        if (remoteStart.stage === 'calibrate') {
+          remoteStart.stage = 'countdown';
+          remoteStart.deadline = now+3000;
+          remoteStatus('3 秒后开始 · 站稳，双手放在腰前');
+        }
       }
     }
     return;
@@ -502,7 +573,7 @@ function handlePose(landmarks, now) {
 }
 
 function readCamera(now) {
-  if (!stream || (phase !== 'setup' && (phase !== 'playing' || controlMode !== 'body'))) return;
+  if (!stream || (phase !== 'setup' && !(['playing','result'].includes(phase) && controlMode === 'body'))) return;
   if (video.readyState < 2 || video.currentTime === lastVideoTime || now - lastPoseAt < 42) return;
   lastPoseAt = now;
   lastVideoTime = video.currentTime;
@@ -536,6 +607,12 @@ function tick(now) {
   const dt = Math.min(.05, (now - last) / 1000);
   last = now;
   readCamera(now);
+  if (remoteStart.stage !== 'idle' && now-lastPoseAt>500) {
+    calibrating = false;
+    resetRemoteStart();
+    updateSetup();
+    remoteStatus('摄像头画面中断，恢复后重新举手准备开局。');
+  }
   if (phase === 'playing') {
     const ready = controlMode === 'keyboard' || (currentInput && now - lastValidAt <= TRACKING_MAX_AGE);
     if (ready) {
@@ -577,6 +654,7 @@ navigator.mediaDevices?.addEventListener('devicechange', () => {
   listCameras().catch(() => {});
 });
 $('calibrate').onclick = () => {
+  resetRemoteStart();
   calibrating = true;
   calibration = createCalibration();
   $('progress').value = 0;
@@ -584,7 +662,11 @@ $('calibrate').onclick = () => {
   cameraStatus('站在活动区中央，双手放在腰前，站直保持约 1 秒。');
 };
 $('startBody').onclick = () => startGame('body');
-$('startKeyboard').onclick = () => startGame('keyboard');
+$('startKeyboard').onclick = () => {
+  closeCamera();
+  window.location.assign('../gull-flight/?mode=keyboard');
+};
+$('startLegacyKeyboard').onclick = () => startGame('keyboard');
 $('setupButton').onclick = returnToSetup;
 $('resultSetup').onclick = returnToSetup;
 $('result').addEventListener('cancel', event => {
@@ -624,5 +706,12 @@ window.addEventListener('blur', () => {
 window.addEventListener('pagehide', () => {
   closeCamera();
   if (phase !== 'setup') returnToSetup();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && remoteStart.stage !== 'idle') {
+    calibrating = false;
+    resetRemoteStart();
+    updateSetup();
+  }
 });
 requestAnimationFrame(tick);
