@@ -1,0 +1,110 @@
+[
+  {
+    "name": "shoulders and elbows work without visible hips",
+    "pass": true
+  },
+  {
+    "name": "face alone is not an actionable body",
+    "pass": true
+  },
+  {
+    "name": "fold works without prior spread",
+    "pass": true
+  },
+  {
+    "name": "not ready cannot dive",
+    "pass": true
+  },
+  {
+    "name": "not aligned cannot dive",
+    "pass": true
+  },
+  {
+    "name": "missing elbow cancels confirmation",
+    "pass": true
+  },
+  {
+    "name": "sample gap cannot complete old action",
+    "pass": true
+  },
+  {
+    "name": "two arm cycles launch exactly once",
+    "pass": true
+  },
+  {
+    "name": "two modest cycles work with partly extended arms",
+    "pass": true
+  },
+  {
+    "name": "small jitter cannot count as flaps",
+    "pass": true
+  },
+  {
+    "name": "open claw blocks body escape",
+    "pass": true
+  },
+  {
+    "name": "one open close gives one fry, hold fist gives none",
+    "pass": true
+  },
+  {
+    "name": "fresh spread after grab can escape",
+    "pass": true
+  },
+  {
+    "name": "held spread cannot escape on grab entry",
+    "pass": true
+  },
+  {
+    "name": "keyboard round still reaches result",
+    "pass": true
+  },
+  {
+    "name": "restart clears gesture state",
+    "pass": true
+  },
+  {
+    "name": "direct spread after 1 fries needs no extra fold",
+    "pass": true
+  },
+  {
+    "name": "direct spread after 2 fries needs no extra fold",
+    "pass": true
+  },
+  {
+    "name": "direct spread after 3 fries needs no extra fold",
+    "pass": true
+  },
+  {
+    "name": "palm rearm during deliberate spread cannot lock escape",
+    "pass": true
+  },
+  {
+    "name": "single-arm extension while grabbing never escapes",
+    "pass": true
+  },
+  {
+    "name": "brief spread noise does not escape",
+    "pass": true
+  },
+  {
+    "name": "body lesson starts at launch and ignores wrong action",
+    "pass": true
+  },
+  {
+    "name": "lesson advances via launch align dive grab escape",
+    "pass": true
+  },
+  {
+    "name": "lesson countdown freezes chase and resets practice score",
+    "pass": true
+  },
+  {
+    "name": "practice grabs cannot start visitor attack",
+    "pass": true
+  },
+  {
+    "name": "retry skip and settings clear lesson",
+    "pass": true
+  }
+]
