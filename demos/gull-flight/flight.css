@@ -11,7 +11,23 @@
 #bodyLesson strong{font-size:21px}
 #bodyLesson p{margin:8px 0;line-height:1.45;font-size:15px}
 #bodyLesson button{padding:5px 9px;border:1px solid #ffd578;border-radius:7px;background:#234959;margin:3px;color:#fff3d6}
-#lessonDemo{font-size:42px;text-align:center;animation:lesson-motion 1s ease-in-out infinite alternate}
+#lessonDemo{font-size:42px;text-align:center}
+#lessonDemo svg{display:block;width:100%;height:145px}
+.demo-arm.left{transform-origin:110px 52px;--turn:-55deg}
+.demo-arm.right{transform-origin:130px 52px;--turn:55deg}
+[data-action="flap"] .demo-arm{animation:demo-arm 1.4s ease-in-out infinite}
+[data-action="tuck"] .demo-arm.left{--turn:-78deg}
+[data-action="tuck"] .demo-arm.right{--turn:78deg}
+[data-action="tuck"] .demo-arm{animation:demo-arm 2.4s ease-in-out infinite}
+[data-action="spread"] .demo-arm{animation:demo-arm 2.4s ease-in-out infinite reverse}
+[data-action="lean"] .demo-person{transform-origin:120px 145px;animation:demo-lean 2.8s ease-in-out infinite}
+@keyframes demo-arm{0%,15%,100%{transform:rotate(0)}45%,65%{transform:rotate(var(--turn))}}
+@keyframes demo-lean{0%,100%{transform:rotate(-16deg)}50%{transform:rotate(16deg)}}
+#wingPrompt{position:absolute;inset:40% 7% auto;display:flex;justify-content:space-between;pointer-events:none;z-index:3}
+#wingPrompt span{font-size:clamp(65px,13vw,180px);filter:drop-shadow(0 3px 5px #102c3a);transform-origin:bottom right;animation:prompt-wing 1.4s ease-in-out infinite}
+#wingPrompt span:last-child{scale:-1 1}
+@keyframes prompt-wing{0%,100%{transform:rotate(-20deg) translateY(-14px)}50%{transform:rotate(25deg) translateY(14px)}}
+@media(prefers-reduced-motion:reduce){.demo-arm,.demo-person,#wingPrompt span{animation:none!important}}
 body:has(#bodyLesson:not([hidden])) #motionStatus{left:18px;top:160px;transform:none;max-width:calc(60vw - 50px);font-size:clamp(16px,2vw,24px)}
 @keyframes lesson-motion{from{transform:translateY(-5px) scale(.94)}to{transform:translateY(5px) scale(1.06)}}
 @media(prefers-reduced-motion:reduce){#lessonDemo{animation:none}}
@@ -39,8 +55,8 @@ button:not(:disabled):hover { filter:brightness(1.12) }
 .sheet { width:min(100%,980px); margin:auto;display:grid;grid-template-columns:1fr minmax(255px,.83fr);gap:clamp(18px,4.5vw,60px);padding:clamp(22px,4vw,50px);border:1px solid #e8f3ed73;border-radius:24px;background:#0e2d3af5;box-shadow:0 24px 70px #142b5249 }
 .setup-copy { align-self:center }
 h1,h2,p,dl,dd { margin:0 }
-h1 { font-weight:950;font-size:clamp(40px,7vw,88px); letter-spacing:-.085em;line-height:1 }
-h1 span { color:var(--yellow); font-size:clamp(19px,3vw,32px);letter-spacing:-.055em; display:block;margin-top:15px }
+h1 { font-weight:600;font-size:clamp(40px,7vw,88px); letter-spacing:normal;line-height:1.15 }
+h1 span { color:var(--yellow); font-size:clamp(19px,3vw,32px);font-weight:500;letter-spacing:normal;line-height:1.35; display:block;margin-top:15px }
 .intro { margin-top:20px; color:#e1edeb;line-height:1.65; max-width:33ch }
 .controls-guide { display:grid;grid-template-columns:repeat(2,1fr); gap:8px;margin:23px 0 }
 .controls-guide div { border-top:1px solid #c1e0e96b;padding-top:11px }
@@ -221,3 +237,13 @@ html[lang=en] .cue p {white-space:normal;font-size:clamp(24px,3.6vw,46px)}
 [data-phase=grab] .cue {left:clamp(12px,4vw,58px);bottom:6vh;transform:none;text-align:left;width:min(45vw,580px);min-width:0;padding:0}
 [data-phase=grab] .cue p {white-space:normal;font-size:clamp(21px,3.15vw,42px)}
 #attackClock .attack-label {font-weight:900;font-size:clamp(14px,1.8vw,24px)}
+/* Non-blocking guide stays in the top HUD gutter, away from the aiming area. */
+#bodyLesson{pointer-events:none;position:absolute;top:58px;right:12px;width:230px;max-width:26vw;padding:8px;z-index:6;font-size:12px}
+#bodyLesson button{display:none!important}
+#bodyLesson strong{font-size:16px;font-weight:600}
+#bodyLesson p{font-size:13px;margin:4px 0}
+#lessonDemo{font-size:26px;display:flex;align-items:center;justify-content:center}
+#lessonDemo svg{width:90px;height:65px}
+#bodyLesson[data-animate="false"] svg{display:none}
+[data-action="crates"] .demo-arm,[data-action="escape"] .demo-arm{animation:demo-arm 1.4s ease-in-out infinite}
+@media(max-width:700px){#bodyLesson{width:180px;max-width:35vw}#lessonDemo svg{height:45px}#bodyLesson strong{font-size:13px}#bodyLesson p{font-size:11px}}

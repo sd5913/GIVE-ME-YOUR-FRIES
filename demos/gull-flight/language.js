@@ -1,5 +1,11 @@
 'use strict';
 const english = {
+  "操作指引 · 游戏正常进行": "Controls guide · Game is live",
+  "隐藏指引": "Hide guide",
+  "继续抓取或展翅离开": "Grab more or fly away",
+  "张手再握拳可以继续抓；准备好后，双臂向两侧展开逃跑。": "Open and close your hand to grab another fry. When ready, spread both arms to escape.",
+  "飞回巢穴": "Fly back to your nest",
+  "继续拍翅越过货箱，侧倾绕开招牌，把薯条带回巢。": "Keep flapping over crates and leaning around signs to bring your fries home.",
   "拍动双臂两次": "Flap twice",
   "双肩和手肘保持入镜，上下拍动；下方会显示次数。": "Keep both shoulders and elbows in view. Flap up and down and watch the count.",
   "侧倾对准薯条": "Lean toward the fries",

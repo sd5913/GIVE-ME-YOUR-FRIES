@@ -641,6 +641,23 @@ function drawMirror(video, context, width, height, landmarks, valid, hat = false
     oval(x,y-s*.82,s*.83,s*.14,'#ffdd75',ink,3);
     rounded(x-s*.55,y-s*1.48,s*1.1,s*.65,s*.17,'#f7b852',ink,3);
     rounded(x-s*.83,y-s*.94,s*1.66,s*.24,s*.11,'#ffe189',ink,2.5);
+    if (Math.min(landmarks[9]?.visibility ?? 0,landmarks[10]?.visibility ?? 0)>.46) {
+      const a=point(9),b=point(10);
+      const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
+      const size=limit(Math.hypot(a[0]-b[0],a[1]-b[1])*1.8,12,s*.85);
+      context.save();
+      context.translate(mx,my);
+      context.rotate(Math.atan2(b[1]-a[1],Math.abs(b[0]-a[0])));
+      context.beginPath();
+      context.moveTo(-size,-size*.32);
+      context.quadraticCurveTo(size*.25,-size*.55,size*1.35,size*.12);
+      context.lineTo(size*.15,size*.52);
+      context.quadraticCurveTo(-size,size*.45,-size,-size*.32);
+      context.fillStyle='#ffd578';context.strokeStyle=ink;context.lineWidth=3;
+      context.fill();context.stroke();
+      context.beginPath();context.moveTo(-size,size*.05);context.lineTo(size*1.35,size*.12);context.stroke();
+      context.restore();
+    }
     return;
   }
   if (hat) return;

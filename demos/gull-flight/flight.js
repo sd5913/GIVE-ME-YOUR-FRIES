@@ -37,24 +37,11 @@ let session = 0, cameraRequest = 0, opening = false, stream = null, tracker = nu
 let landmarks = null, latestPose = null, neutral = null, calibration = null, motion = makeMotion();
 let lastVideoTime = -1, lastPoseAt = -Infinity, lastValidAt = -Infinity;
 let trackingPaused = false, lastTick = performance.now();
+let currentLevel=1;
+function showBodyLesson() { $('bodyLesson').hidden=true; }
+function lessonStep() {}
+function startBodyLesson(){beginRound('body',true);}
 let bodyLesson=null;
-const LESSON_STEPS=[
-  ['🪽 ↕ 🪽','拍动双臂两次','双肩和手肘保持入镜，上下拍动；下方会显示次数。'],
-  ['↙ 🧍 ↘','侧倾对准薯条','向薯条盒侧倾，盒边亮起后就对准了。'],
-  ['🪽 → 🧍 ← 🪽','收翅俯冲','两侧手肘收向身体，短暂保持；不用先展翅。'],
-  ['🖐️ → ✊','张手再握拳','单手伸到胸前，张开五指后用同一只手握拳。'],
-  ['🧍 → 🪽','展开双臂离开','抓到薯条后直接展开双臂，保持片刻就能飞走。'],
-  ['🏡','准备正式出发','目标：把薯条带回巢。练习所得不会计入正式得分。']
-];
-function showBodyLesson(){
-  $('bodyLesson').hidden=!bodyLesson;
-  if(!bodyLesson)return;
-  const [demo,title,detail]=LESSON_STEPS[bodyLesson.step];
-  $('lessonProgress').textContent=bodyLesson.step===5 ? tr('练习完成 · ')+Math.ceil(bodyLesson.countdown)+tr(' 秒后开始') : tr('体感练习 ')+(bodyLesson.step+1)+tr(' / 5 · 无攻击、无倒计时');
-  $('lessonDemo').textContent=demo;$('lessonTitle').textContent=tr(title);$('lessonDetail').textContent=tr(detail);
-}
-function startBodyLesson(){beginRound('body',true);bodyLesson={step:0,countdown:3};showBodyLesson();}
-function lessonStep(step){if(bodyLesson){bodyLesson.step=step;showBodyLesson();}}
 
 function makeMotion() {
   return {lean:0, leanAt:null, raised:false, open:false, tuckAt:null,
@@ -207,6 +194,7 @@ function beginRound(newMode, restart = false) {
   inputLift = keyboardFlap = 0;
   inputSpread = 1;
   trackingPaused = false;
+  resetGuide();
   setPhase('launch');
   refreshCue();
   updateHUD();
@@ -236,7 +224,7 @@ function refreshCue() {
     } else if (!game.ready) {
       cue(tr('看准薯条'), tr('等薯条盒边缘亮起'));
     } else {
-      cue(key ? tr('自动俯冲') : tr('收翅俯冲'),key ? tr('对准即可降落，不用按键') : tr('把两侧手肘收向身体'));
+      cue(tr('自动俯冲'),tr('对准即可降落，不用按键'));
     }
   } else if (game.phase === 'dive') {
     cue(tr('俯冲！'));
@@ -296,7 +284,6 @@ function flap() {
 }
 
 function tuck() {
-  if(bodyLesson && bodyLesson.step!==2)return;
   if (!canAct() || game.phase !== 'approach' || !game.ready || !isLinedUp(game)) return;
   setPhase('dive');
   game.diveFrom = game.z;
@@ -330,9 +317,9 @@ function closeClaw(hand) {
   if(bodyLesson)lessonStep(4);
   motion.lastGrabAt=performance.now();
   motion.escapeAt=null;
-  motion.escapeArmed=true;
+  motion.escapeArmed=false;
   tone([[740,0,.085],[1050,.06,.11]]);
-  if (game.carry === 2 && !bodyLesson) {
+  if (game.carry === 2) {
     game.attack = {elapsed:0,resolved:false};
     playHey();
   }
@@ -416,6 +403,7 @@ function arrive() {
 }
 
 function showResult(success, reason = '') {
+  bodyLesson=null;showBodyLesson();
   game.carry = 0;
   $('resultTitle').textContent = success ? (game.deposited ? tr('偷到了！') : tr('空爪回巢')) : reason;
   $('resultText').textContent = success
@@ -424,19 +412,11 @@ function showResult(success, reason = '') {
   if (!success) tone([[175,0,.28,'sawtooth'],[120,.11,.24,'triangle']]);
   setPhase('result');
   updateHUD();
+  $('nextLevel').hidden=!success || currentLevel!==1;
   $('again').focus({preventScroll:true});
 }
 
 function updateFlight(dt) {
-  if(bodyLesson?.step===5){
-    bodyLesson.countdown=Math.max(0,bodyLesson.countdown-dt);showBodyLesson();
-    if(!bodyLesson.countdown)beginRound('body',true);
-    return;
-  }
-  if(bodyLesson && game.phase==='approach'){
-    if(bodyLesson.step===0)lessonStep(1);
-    if(bodyLesson.step===1 && isLinedUp(game))lessonStep(2);
-  }
   game.elapsed += dt;
   game.flash = Math.max(0,game.flash-dt*1.9);
   game.clawSnap = Math.max(0,game.clawSnap-dt);
@@ -977,6 +957,7 @@ function tick(now) {
   const active = !['setup','result'].includes(game.phase);
   trackingPaused = mode==='body' && active && !['home','hit'].includes(game.phase) && now-lastValidAt>TRACKING_GRACE;
   const elbowsMissing=mode==='body' && active && latestPose && latestPose.span===null;
+  $('wingPrompt').hidden=true;
   $('motionStatus').hidden = !trackingPaused && !elbowsMissing;
   if (trackingPaused || elbowsMissing) $('motionStatus').textContent=!latestPose
     ? tr('请后退或调整镜头，让双肩入镜（只有脸无法识别拍翅）')
@@ -988,9 +969,18 @@ function tick(now) {
   if (game.phase==='setup') drawVideoPreview();
   if (mode==='body' && stream && ['launch','result'].includes(game.phase)) {
     drawMirror(video,paint,W,H,landmarks,Boolean(latestPose),true);
+    if(game.phase==='launch'){
+      const beat=(1+Math.sin(now/220))/2;
+      paint.save();
+      paint.translate(0,-H*.20);
+      drawWing(-1,.8,beat,0);
+      drawWing(1,.8,beat,0);
+      paint.restore();
+    }
   } else {
     drawFlight(game,view,now/1000);
   }
+  updateGuide(game,now);
   requestAnimationFrame(tick);
 }
 
@@ -1017,10 +1007,12 @@ $('bodyStart').onclick = () => {
   }
   startBodyLesson();
 };
-$('lessonRetry').onclick=startBodyLesson;
-$('lessonSkip').onclick=()=>beginRound('body',true);
+$('lessonRetry').hidden=true;
+$('lessonSkip').textContent=tr('隐藏指引');
+$('lessonSkip').onclick=()=>{bodyLesson=null;showBodyLesson();};
 $('keyboardStart').onclick = () => beginRound('keyboard',true);
-$('again').onclick = () => beginRound(mode);
+$('again').onclick = () => beginRound(mode,true);
+$('nextLevel').onclick=()=>{currentLevel=2;beginRound(mode,true);};
 $('back').onclick = returnToSetup;
 $('settings').onclick = returnToSetup;
 $('sound').onclick = () => {
