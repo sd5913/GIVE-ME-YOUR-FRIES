@@ -194,7 +194,11 @@ const reducedGrabMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 const cartonFront = new Path2D('M-28 -16 Q-27 -18 -25 -17 C-10 -6 10 -6 25 -17 Q28 -19 28 -15 L20 23 Q19 26 16 26 L-16 26 Q-19 26 -20 23 Z');
 const cartonHem = new Path2D('M-20 18 Q0 22 20 18 L19 23 Q18 26 16 26 L-16 26 Q-19 26 -20 23 Z');
-const frySlots = [[-16,-39,-.15],[4,-46,.08],[17,-37,.17],[-6,-42,-.06],[9,-35,.12]];
+const frySlots = [
+  [-20,-39,-.18],[-13,-46,-.1],[-5,-40,-.04],[3,-47,.05],
+  [11,-40,.12],[19,-45,.19],[-17,-34,-.13],[-9,-42,-.07],
+  [-1,-35,0],[7,-43,.08],[15,-34,.15],[22,-39,.21]
+];
 
 function paintFries(x,y,s,count = 5, highlighted = false) {
   paint.save();
@@ -204,7 +208,7 @@ function paintFries(x,y,s,count = 5, highlighted = false) {
   oval(0,27,24,4,'#43322933');
   shape([[-28,-16],[-23,-23],[21,-23],[28,-16],[20,5],[-20,5]],'#ae5140',ink,1.8);
   for (let j=0;j<count;j++) {
-    const [fx,top,angle]=frySlots[j];
+    const [fx,top,angle]=frySlots[j % frySlots.length];
     paint.save();
     paint.translate(fx,top);
     paint.rotate(angle);
@@ -248,7 +252,7 @@ function drawTarget(game, project, now) {
   const taken = game.phase==='hit' ? game.dropped : game.carry;
   const side = -game.target;
   const size = s*.82;
-  paintFries(x-side*25*size*bounce,y+5*size*bounce,size*(1+bounce),5-(taken || 0),ready);
+  paintFries(x-side*25*size*bounce,y+5*size*bounce,size*(1+bounce),(game.npcs?.[game.npcIndex]?.stock ?? 3),ready);
   if (game.phase === 'approach' && !isLinedUp(game)) {
     paintArrow(x,y-Math.max(57,69*s),Math.sign(routeX(game.target)-game.x),1,'#ffe193');
   }
@@ -398,12 +402,16 @@ function drawOwner(game,project,now) {
   const x = fx+side*18*s;
   const y = fy+26*s;
   const charge = game.attack ? limit(game.attack.elapsed/(game.attack.duration ?? ATTACK_NOTICE+ATTACK_CHARGE),0,1) : 0;
-  const anger = game.carry ? Math.max(.23,charge) : game.phase==='hit' ? 1 : 0;
+  const anger = game.npcs?.[game.npcIndex]?.stolen ? Math.max(.23,charge,(game.wanted||0)*.1) : game.phase==='hit' ? 1 : 0;
   paint.save();
   if (game.phase==='chase') paint.globalAlpha = Math.max(0,1-game.elapsed/.8);
   const recoil = !reducedGrabMotion.matches && game.carry ? Math.sin(Math.PI*limit(game.clawSnap/.28,0,1)) : 0;
   paint.translate(side*recoil*s*.9,-recoil*s*.6);
-  drawVisitor(x,y,s,anger,side,game.carry===1,recoil);
+  paint.save();
+  if(game.npcIndex===1)paint.filter='hue-rotate(35deg)';
+  if(game.npcIndex===2)paint.filter='hue-rotate(170deg)';
+  drawVisitor(x,y,s,anger,side,game.npcs?.[game.npcIndex]?.stolen===1,recoil);
+  paint.restore();
   drawTarget(game,project,now);
   paint.translate(x,y);
   paint.scale(side*s,s);
@@ -601,6 +609,13 @@ function drawFlight(game, view, now) {
   paint.translate(-W/2,-H/2);
   drawPier(view,project);
   drawNest(game,project,now);
+  if(currentLevel===2){
+    for(const z of [1000,2050,2700,3750,4600,5500,6500,7400]){
+      if(z<game.z+150 || z>game.z+1800)continue;
+      const side=z%3?1:-1,[x,y,s]=project(side*265,0,z);
+      paint.save();paint.globalAlpha=.65;drawVisitor(x,y,s*.55,0,-side,false,0);paint.restore();
+    }
+  }
   drawObstacles(game,project);
   drawOwner(game,project,now);
   paint.restore();
@@ -616,6 +631,11 @@ function drawFlight(game, view, now) {
       line([[x,y],[x+side*(15+p*48),y+(j%3-1)*p*28]],'#fff4ca',2);
     }
     paint.globalAlpha = 1;
+  }
+  if(currentLevel===2 && game.phase==='chase' && game.wanted){
+    const bob=Math.sin(now*(5+game.wanted))*5;
+    drawVisitor(42,H-75+bob,.6+game.wanted*.035,game.wanted/5,1,true,0);
+    textAt('HEY! '+ '★'.repeat(game.wanted),100,H-190,20,'#ffd578');
   }
   drawWing(-1,view.wings,view.lift,inset);
   drawWing(1,view.wings,view.lift,inset);

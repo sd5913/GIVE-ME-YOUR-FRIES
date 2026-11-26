@@ -55,6 +55,7 @@
   </section>
 
   <div id="hud" class="hud" hidden>
+    <div id="routeHud"><b id="levelLabel"></b><span id="zoneLabel"></span><progress id="routeProgress" max="100" value="0"></progress><span id="wantedLabel"></span><span id="npcLabel"></span></div>
     <div id="dangerGlow" aria-hidden="true" hidden></div>
     <div class="hud-stats">
       <div><span>第 <b id="round">1</b> 趟</span><span>巢内 <b id="score">0</b></span></div>
@@ -65,7 +66,7 @@
       </div>
       <div id="load" class="carry" role="status" aria-atomic="true" hidden>
         <span class="carry-label">爪上薯条</span>
-        <span class="carry-amount"><b id="carry">0</b><small> / 3</small></span>
+        <span class="carry-amount"><b id="carry">0</b><small id="capacity"> / 3</small></span>
         <span class="carry-slots" aria-hidden="true"><i></i><i></i><i></i></span>
       </div>
     </div>

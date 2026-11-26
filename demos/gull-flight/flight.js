@@ -147,9 +147,20 @@ function playHey() {
 }
 
 function updateHUD() {
+  $('levelLabel').textContent='Level 0'+currentLevel;
+  $('capacity').textContent=' / '+MAX_FRIES;
+  $('routeProgress').value=limit(game.z/NEST_Z*100,0,100);
+  const zone=currentLevel===1?'Flight school / 飞行教学':game.z<800?'Takeoff / 起飞区':game.z<2100?'Tourists / 游客区':game.z<3800?'Picnic / 野餐区':game.z<5600?'Food street / 美食街':'Final escape / 最终逃亡';
+  $('zoneLabel').textContent=zone;
+  const wanted=currentLevel===2?Math.min(5,Math.ceil(game.carry/2.4)):0;
+  if(wanted>(game.wanted||0))tone([[220+wanted*90,0,.1],[300+wanted*90,.12,.1]]);
+  game.wanted=wanted;
+  $('wantedLabel').textContent=currentLevel===2?'WANTED / 警戒 '+ '★'.repeat(wanted)+'☆'.repeat(5-wanted):'';
+  const npc=game.npcs?.[game.npcIndex];
+  $('npcLabel').textContent=npc && ['approach','grab'].includes(game.phase)?npc.name+' · '+npc.stock+' fries / 根':'';
   $('round').textContent = game.round;
   $('score').textContent = game.score;
-  $('load').hidden = !game.carry;
+  $('load').hidden = false;
   const count = String(game.carry);
   if ($('carry').textContent !== count) {
     $('carry').textContent = count;
@@ -227,7 +238,7 @@ function refreshCue() {
     } else if (!game.ready) {
       cue(tr('看准薯条'), tr('等薯条盒边缘亮起'));
     } else {
-      cue(tr('自动俯冲'),tr('对准即可降落，不用按键'));
+      cue(key?tr('自动俯冲'):tr('收翅俯冲'),key?tr('对准即可降落，不用按键'):tr('把两侧手肘收向身体'));
     }
   } else if (game.phase === 'dive') {
     cue(tr('俯冲！'));
@@ -444,7 +455,7 @@ function updateFlight(dt) {
       game.x = limit(game.x+game.lean*222*dt,-210,210);
       if (linedUp !== isLinedUp(game)) refreshCue();
     }
-    game.z = Math.min(APPROACH_LIMIT,game.z+(currentLevel===2?170:243)*dt);
+    game.z = Math.min(APPROACH_LIMIT,game.z+(currentLevel===2?120:243)*dt);
     if (!game.ready && game.z >= TRAY_Z-323) {
       game.ready = true;
       if (isLinedUp(game)) tone([[690,0,.12]]);
