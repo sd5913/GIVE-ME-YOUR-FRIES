@@ -1,5 +1,7 @@
 # GIVE ME YOUR FRIES! 🍟
 
+[GitHub Pages setup / 网页部署说明](docs/github-pages.md)
+
 **Game version v2.4** · **Last updated 19 November 2026 (UTC+8)**
 
 [English](#english) · [简体中文](#简体中文) · [Changelog / 更新日志](CHANGELOG.md) · [Full-body demo / 全身体感 Demo](docs/full-body-big-screen-plan.md)
