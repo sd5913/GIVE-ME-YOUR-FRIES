@@ -15,7 +15,7 @@ const handContext = handFrame.getContext('2d');
 const ESCAPE_SECONDS = 20;
 const LEAN_CONTROL=Object.freeze({
   shoulderWeight:.6,headWeight:.4,sameDirectionBoost:1.12,conflictShoulderWeight:.8,
-  triggerDegrees:10,neutralDegrees:4,confirmMs:120
+  triggerDegrees:10,neutralDegrees:4,confirmMs:120,flightNeutral:6,flightTrigger:12,flightConfirmMs:160
 });
 const ATTACK_NOTICE = .5;
 const ATTACK_CHARGE = 2.3;
@@ -32,7 +32,7 @@ const VISION_ROOTS = [
 const POSE_MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
 const HAND_MODEL = 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task';
 
-let game = {phase:'setup',round:1,score:0,target:-1,blocked:-1,x:0,z:50};
+let game = {phase:'welcome',round:1,score:0,target:-1,blocked:-1,x:0,z:50};
 const view = {x:0,z:50,height:155,reach:0,pitch:0,bank:0,lift:0,wings:1,speed:0};
 let mode = 'keyboard', inputLift = 0, inputSpread = 1, keyboardFlap = 0;
 const heldKeys = new Set();
@@ -57,7 +57,7 @@ function makeMotion() {
     escapeAt:null, hand:null, activeHand:null, handStatus:'', candidate:null, candidateAt:0,
     handSeenAt:-Infinity, handSampleAt:-Infinity, handCrop:null,
     lastGrabAt:-Infinity,poseAt:null,
-    leanCandidate:0,leanCandidateAt:0,selectionArmed:true,
+    steerDirection:0,leanCandidate:0,leanCandidateAt:0,selectionArmed:true,
     flapPeak:null,flapLow:null,flapStartedAt:null,lastFlapAt:-Infinity,currentAction:'等待动作'};
 }
 
@@ -110,13 +110,18 @@ function setPhase(phase) {
   if (phase !== 'grab' && phase !== 'chase') $('grabImpact').hidden = true;
   motion.escapeAt=null;
   motion.raised=false; motion.candidate=null;
+  if(phase!=='handPractice')practice=null;
+  $('handSchool').hidden=phase!=='handPractice';
+  $('repeatPractice').hidden=phase!=='levelSelect'||mode!=='body';
   game.phase = phase;
   game.elapsed = 0;
   stage.dataset.phase = phase;
+  $('welcome').hidden = phase !== 'welcome';
   $('setup').hidden = phase !== 'setup';
   $('calibrationScreen').hidden=phase!=='calibrating';
   $('levelSelect').hidden=phase!=='levelSelect';
-  $('hud').hidden = ['setup','calibrating','levelSelect','result'].includes(phase);
+  $('levelCountdown').hidden=true;
+  $('hud').hidden = ['welcome','setup','calibrating','handPractice','levelSelect','result'].includes(phase);
   $('result').hidden = phase !== 'result';
   $('settings').hidden = !['launch','approach','dive','grab','chase','hit','home','result'].includes(phase);
   $('motionStatus').hidden = true;
@@ -164,17 +169,32 @@ function confirmLevelSelection(){
   selectionCountdown=3;
   $('levelSelectHint').hidden=true;
   $('levelCountdown').hidden=false;
-  $('levelCountdown').textContent=tr('即将开始 · ')+selectionCountdown.toFixed(1);
+  $('levelCountdown').classList.remove('paused');
+  $('countdownPaused').hidden=true;
+  countdownBeat(3);
+}
+
+function countdownBeat(digit){
+  const number=$('countdownDigit');
+  number.textContent=digit;
+  number.classList.remove('countdown-beat');
+  void number.offsetWidth;
+  number.classList.add('countdown-beat');
+  tone([[digit===1?880:digit===2?660:520,0,.17,'sine']]);
 }
 
 function updateLevelSelection(dt){
-  if(!selectionCountdown||trackingPaused)return;
+  if(!selectionCountdown)return;
+  $('levelCountdown').classList.toggle('paused',trackingPaused);
+  $('countdownPaused').hidden=!trackingPaused;
+  if(trackingPaused)return;
+  const previous=Math.ceil(selectionCountdown);
   selectionCountdown=Math.max(0,selectionCountdown-dt);
-  $('levelCountdown').textContent=tr('即将开始 · ')+selectionCountdown.toFixed(1);
-  if(selectionCountdown===0){
+  const digit=Math.ceil(selectionCountdown);
+  if(!digit){
     currentLevel=selectedLevel;
     beginRound(mode,true);
-  }
+  }else if(digit!==previous)countdownBeat(digit);
 }
 
 function tone(notes) {
@@ -403,7 +423,7 @@ function keyboardHorizontal() {
 }
 
 function updateHorizontal(dt,speed) {
-  const direction=mode==='keyboard'?keyboardHorizontal():game.lean||0;
+  const direction=mode==='keyboard'?keyboardHorizontal():motion.steerDirection;
   if(Math.abs(direction)>.18){
     const lane=Math.sign(direction);
     if(lane!==game.laneTarget){
@@ -432,6 +452,7 @@ function flap(triggeredAt=performance.now()) {
     game.momentum=Math.min(tune.max-tune.base,(game.momentum||0)+tune.flap);
     game.momentumHold=tune.hold;
     applyFlapLift(game);
+    confirmArmAction('已识别拍翅');
     if(mode==='body'&&Number.isFinite(motion.flapStartedAt)){
       lastFlapLatencyMs=triggeredAt-motion.flapStartedAt;
       motion.flapStartedAt=null;
@@ -490,6 +511,7 @@ function openClaw(hand) {
   if (!canAct() || game.phase !== 'grab' || game.clawOpen || game.carry>=MAX_FRIES || !game.npcs[game.npcIndex].stock) return;
   game.clawOpen = true;
   motion.hand = hand;
+  confirmArmAction('已识别张手');
   tone([[560,0,.075]]);
   refreshCue();
 }
@@ -497,6 +519,7 @@ function openClaw(hand) {
 function closeClaw(hand) {
   if (!canAct() || game.phase !== 'grab' || !game.clawOpen || hand !== motion.hand) return;
   game.clawOpen = false;
+  confirmArmAction('已握拳抓取');
   game.clawSnap = .28;
   game.carry++;
   const npc=game.npcs[game.npcIndex];npc.stock--;npc.stolen++;
@@ -537,6 +560,7 @@ function keyboardGrab() {
 function beginChase(confirmedSpread=false) {
   if (game.phase !== 'grab') return;
   if (mode==='body' && !confirmedSpread && (game.clawOpen || motion.candidate)) return;
+  if(confirmedSpread)confirmArmAction('已识别展翅');
   const from={z:game.z,x:game.x,flightHeight:game.flightHeight};
   const routeTime=game.routeTime||0;
   motion.candidate=null;
@@ -799,30 +823,35 @@ function updateLeanControl(pose,now){
     }
   }
   const magnitude=Math.abs(degrees);
-  const target=magnitude<=LEAN_CONTROL.neutralDegrees?0:
-    Math.sign(degrees)*limit((magnitude-LEAN_CONTROL.neutralDegrees)/
-      (LEAN_CONTROL.triggerDegrees-LEAN_CONTROL.neutralDegrees),0,1);
+  const selecting=game.phase==='levelSelect';
+  const deadzone=selecting ? LEAN_CONTROL.neutralDegrees : LEAN_CONTROL.flightNeutral;
+  const trigger=selecting ? LEAN_CONTROL.triggerDegrees : LEAN_CONTROL.flightTrigger;
+  const target=magnitude<=deadzone?0:
+    Math.sign(degrees)*limit((magnitude-deadzone)/
+      (trigger-deadzone),0,1);
   const elapsed=now-(motion.leanAt??now);
-  game.lean=smooth(game.lean,target,Math.min(elapsed,100)/1000,mode==='body'?26:15);
+  game.lean=smooth(game.lean,target,Math.min(elapsed,100)/1000,12);
   motion.lean=degrees;
   motion.leanAt=now;
   if(game.phase!=='levelSelect'){
     motion.currentAction=magnitude>LEAN_CONTROL.neutralDegrees
       ? '倾斜 '+(degrees<0?'LEFT':'RIGHT') : '滑翔';
   }
-  if(magnitude<=LEAN_CONTROL.neutralDegrees){
+  motion.steerDirection=0;
+  if(magnitude<=deadzone){
     motion.leanCandidate=0;
     motion.leanCandidateAt=0;
     motion.selectionArmed=true;
     return 0;
   }
   const direction=Math.sign(degrees);
-  if(magnitude>=LEAN_CONTROL.triggerDegrees){
+  if(magnitude>=trigger){
     if(motion.leanCandidate!==direction){
       motion.leanCandidate=direction;
       motion.leanCandidateAt=now;
-    }else if(now-motion.leanCandidateAt>=LEAN_CONTROL.confirmMs&&motion.selectionArmed){
-      if(game.phase==='levelSelect'){
+    }else if(now-motion.leanCandidateAt>=(selecting?LEAN_CONTROL.confirmMs:LEAN_CONTROL.flightConfirmMs)){
+      if(!selecting) motion.steerDirection=direction;
+      else if(motion.selectionArmed){
         chooseLevel(direction<0?1:2);
         motion.selectionArmed=false;
       }
@@ -836,13 +865,15 @@ function updateLeanControl(pose,now){
 
 function trackMotion(pose, now) {
   if (motion.poseAt!==null && now-motion.poseAt>120) {
+    motion.leanCandidate=0;
+    motion.steerDirection=0;
     motion.escapeAt=null;
     motion.raised=false;
     motion.flapPeak=motion.flapLow=null;
     motion.flapStartedAt=null;
   }
   motion.poseAt=now;
-  updateLeanControl(pose,now);
+  if(game.phase!=='handPractice')updateLeanControl(pose,now);
   if (pose.span === null) {
     game.descendInput=false;
     motion.escapeAt = null;
@@ -852,7 +883,8 @@ function trackMotion(pose, now) {
     return;
   }
   inputSpread = limit((pose.span-1.06)/.7,0,1);
-  inputLift = limit((pose.lift+.27)*1.6,-1,1);
+  const relativeLift=pose.lift-(neutral.lift ?? -.27);
+  inputLift = limit(relativeLift*1.6,-1,1);
   game.descendInput=false;
   if(Math.abs(inputLift)>.2)motion.currentAction=inputLift>0?'拍翅上行':'拍翅下行';
   else motion.currentAction='停止拍翅，自然下降';
@@ -862,7 +894,7 @@ function trackMotion(pose, now) {
       motion.flapLow??=pose.lift;
       if(!motion.raised){
         motion.flapLow=Math.min(motion.flapLow,pose.lift);
-        if(pose.lift-motion.flapLow>=BODY_INPUT.flapTravel||pose.lift>-.14){
+        if(pose.lift-motion.flapLow>=BODY_INPUT.flapTravel||relativeLift>BODY_INPUT.flapTravel){
           motion.raised=true;motion.flapPeak=pose.lift;motion.flapStartedAt=now;
         }
       }else{
@@ -871,6 +903,7 @@ function trackMotion(pose, now) {
           motion.raised=false;motion.flapLow=pose.lift;motion.lastFlapAt=now;
           motion.currentAction='拍翅确认';
           confirmLevelSelection();
+          if(selectionCountdown)confirmArmAction('已识别拍翅');
         }
       }
     }
@@ -891,12 +924,12 @@ function trackMotion(pose, now) {
     }
     return;
   }
-  if (['launch','approach','chase'].includes(game.phase) && pose.span>BODY_INPUT.flapSpan) {
+  if (['handPractice','launch','approach','chase'].includes(game.phase) && pose.span>BODY_INPUT.flapSpan) {
     motion.flapPeak ??= pose.lift;
     motion.flapLow ??= pose.lift;
     if (!motion.raised) {
       motion.flapLow=Math.min(motion.flapLow,pose.lift);
-      if (pose.lift-motion.flapLow>=BODY_INPUT.flapTravel || pose.lift>-.14) {
+      if (pose.lift-motion.flapLow>=BODY_INPUT.flapTravel || relativeLift>BODY_INPUT.flapTravel) {
         motion.raised=true; motion.flapPeak=pose.lift;motion.flapStartedAt=now;
       }
     } else {
@@ -904,7 +937,8 @@ function trackMotion(pose, now) {
       if (motion.flapPeak-pose.lift>=BODY_INPUT.flapTravel && now-motion.lastFlapAt>=BODY_INPUT.flapCooldownMs) {
         motion.raised=false; motion.flapLow=pose.lift;motion.lastFlapAt=now;
         motion.currentAction='拍翅确认';
-        flap(now);
+        if(game.phase==='handPractice')practiceFlap(now);
+        else flap(now);
       }
     }
   } else {
@@ -931,13 +965,113 @@ function classifyHand(points, aspect, category) {
   return null;
 }
 
+const PRACTICE_SUCCESS_MS=1400;
+const PRACTICE_CELEBRATION_MS=3000;
+const practiceSteps=[
+  ['伸一只手到胸前','让整只手入镜','✓ 小爪就位！'],
+  ['张开五指','掌心朝向镜头','✓ 瞄准薯条！'],
+  ['用同一只手握拳','','✓ 第一根到爪！']
+];
+let practice=null;
+
+function startHandPractice(){
+  mode='body';
+  motion=makeMotion();
+  selectionCountdown=0;
+  practice={step:-1,flaps:0,hand:null,since:null,lastSeen:-Infinity,lastSample:-Infinity,advanceAt:0};
+  setPhase('handPractice');
+  $('practiceFlightArt').innerHTML=gestureIllustration('flap');
+  showPractice();
+}
+
+function showPractice(hint=''){
+  const {step,advanceAt}=practice;
+  const flying=step===-1;
+  const [title,detail,success]=flying
+    ? ['拍两下翅膀','','✓ 翅膀有劲！']
+    : practiceSteps[step];
+  $('handSchool').dataset.step=step;
+  $('handSchool').dataset.ok=advanceAt?'yes':'no';
+  $('skipPractice').hidden=false;
+  $('practiceTitle').textContent=tr(advanceAt?success:title);
+  const text=advanceAt ? '' : flying && !hint ? practice.flaps+' / 2' : tr(hint||detail);
+  if($('practiceHint').textContent!==text)$('practiceHint').textContent=text;
+}
+
+function practiceFlap(now){
+  if(practice.step!==-1 || practice.advanceAt)return;
+  practice.flaps++;
+  tone([[practice.flaps===1?540:740,0,.13]]);
+  if(practice.flaps===2)practice.advanceAt=now+PRACTICE_SUCCESS_MS;
+  showPractice();
+}
+
+function finishHandPractice(){
+  startLevelSelection('body');
+}
+
+function sameTrackedHand(a,b){
+  if(!a||!b)return false;
+  return a.arm && b.arm ? a.arm===b.arm : Boolean(a.side && a.side===b.side);
+}
+
+function samplePractice(hands,now){
+  if(!practice||practice.step<0||practice.completed||practice.advanceAt)return;
+  const hand=hands.find(h=>h.inFront && (h.arm||h.side) &&
+    (!practice.hand || sameTrackedHand(h,practice.hand)));
+  if(now-practice.lastSample>TRACKING_GRACE)practice.since=null;
+  practice.lastSample=now;
+  if(!hand){
+    practice.since=null;
+    if(now-practice.lastSeen>BODY_INPUT.handGraceMs){practice.step=0;practice.hand=null;}
+    showPractice(practice.hand?'请把刚才那只手放回镜头里':'请把一只手抬到胸口前');
+    return;
+  }
+  practice.lastSeen=now;
+  practice.hand??=hand;
+  const expected=[null,'Open_Palm','Closed_Fist'][practice.step];
+  if(expected && hand.shape!==expected){practice.since=null;showPractice();return;}
+  practice.since??=now;
+  if(now-practice.since<BODY_INPUT.handConfirmMs)return;
+  practice.advanceAt=now+PRACTICE_SUCCESS_MS;
+  showPractice();
+}
+
+function updatePractice(now){
+  if(!practice)return;
+  if(practice.completed){
+    if(now>=practice.leaveAt)finishHandPractice();
+    return;
+  }
+  if(practice.advanceAt && now>=practice.advanceAt){
+    if(practice.step===2){
+      practice.completed=true;
+      $('handSchool').dataset.step='complete';
+      $('practiceTitle').textContent=tr('小海鸥，毕业啦！');
+      $('practiceHint').textContent=tr('下一站，码头偷薯条。');
+      $('skipPractice').hidden=true;
+      practice.leaveAt=now+PRACTICE_CELEBRATION_MS;
+      tone([[523,0,.18],[659,.14,.18],[784,.28,.32]]);
+      return;
+    }
+    practice.step++;
+    practice.lastSeen=now;
+    practice.advanceAt=0;practice.since=null;
+    showPractice();
+  }
+  if(!practice.advanceAt && (!latestPose||now-lastValidAt>TRACKING_GRACE)){
+    if(practice.step===-1)showPractice('请让两侧手肘入镜，再上下拍动双臂');
+    else samplePractice([],now);
+  }
+}
+
 function trackHand(result, pose, aspect, crop, now) {
   const preparing=game.phase==='approach'&&game.grabReady;
   const diving=game.phase==='dive'&&game.palmReady;
-  if (game.phase!=='grab'&&!preparing&&!diving) return;
+  if (game.phase!=='grab'&&game.phase!=='handPractice'&&!preparing&&!diving) return;
   const distance = (a,b) => Math.hypot((a.x-b.x)*aspect,a.y-b.y);
   const fullFrame = point => ({x:crop.x+point.x*crop.width,y:crop.y+point.y*crop.height});
-  const sameHand = (a,b) => a.arm && b.arm ? a.arm===b.arm : Boolean(a.side && a.side===b.side);
+
   const handedness = result.handedness ?? result.handednesses;
   const hands = result.landmarks.map((points,index) => {
     if (!points[0] || !points[9]) return null;
@@ -956,8 +1090,9 @@ function trackHand(result, pose, aspect, crop, now) {
     return {side,arm,shape,inFront};
   }).filter(Boolean);
 
+  if(game.phase==='handPractice'){samplePractice(hands,now);return;}
   const hand = diving||game.clawOpen||motion.activeHand
-    ? hands.find(candidate=>sameHand(candidate,motion.activeHand))
+    ? hands.find(candidate=>sameTrackedHand(candidate,motion.activeHand))
     : hands.find(candidate=>candidate.inFront&&candidate.shape==='Open_Palm'&&(candidate.arm||candidate.side));
   if (hand) motion.handSeenAt = now;
   if (!hand && game.clawOpen && now-motion.handSeenAt>BODY_INPUT.handGraceMs) {
@@ -978,7 +1113,7 @@ function trackHand(result, pose, aspect, crop, now) {
     motion.candidate = null;
     return;
   }
-  if (!motion.candidate || !sameHand(hand,motion.candidate) || motion.candidate.shape!==expected) {
+  if (!motion.candidate || !sameTrackedHand(hand,motion.candidate) || motion.candidate.shape!==expected) {
     motion.candidate = hand;
     motion.candidateAt = now;
     return;
@@ -989,6 +1124,7 @@ function trackHand(result, pose, aspect, crop, now) {
   if(preparing){
     motion.activeHand = hand;
     game.palmReady=true;
+    confirmArmAction('已识别张手');
     motion.currentAction='张开手掌，自动接近';
     beginDive();
   }else if(diving){
@@ -1022,20 +1158,29 @@ function detectHand(pose, aspect, now) {
   trackHand(handTracker.recognizeForVideo(handFrame,now),pose,aspect,crop,now);
 }
 
+function newCalibration() {
+  return {started:null,lastSample:null,count:0,x:0,shoulderY:0,lean:0,shoulderAngle:0,headAngle:0,headCount:0,lift:0};
+}
+
 function recordCalibration(pose, now) {
   const bar = $('calibrationProgress');
   const unstable=pose&&calibration.count&&(
+    now-calibration.lastSample>TRACKING_GRACE ||
+    Math.abs(pose.shoulderY-calibration.shoulderY/calibration.count)>pose.torso*.18 ||
     Math.abs(pose.x-calibration.x/calibration.count)>pose.torso*.24 ||
     Math.abs(pose.shoulderAngle-calibration.shoulderAngle/calibration.count)>8 ||
     Math.abs(pose.lift-calibration.lift/calibration.count)>.14
   );
   if (!pose || pose.span===null || unstable) {
-    calibration = {started:null,count:0,x:0,lean:0,shoulderAngle:0,headAngle:0,headCount:0,lift:0};
+    calibration = newCalibration();
     bar.value = 0;
-    $('calibrationHint').textContent=tr('请自然站立，保持双肩与双肘稳定');
+    $('calibrationHint').textContent=tr(!pose || pose.span===null ? '请后退或调整镜头，让双肩和双肘都入镜。' : '姿势发生变化，请回到舒服的起始姿势。');
     return;
   }
+  if(calibration.started===null) $('calibrationHint').textContent=tr('已看到双肩和双肘，请保持不动直到进度条走满。');
   calibration.started ??= now;
+  calibration.lastSample=now;
+  calibration.shoulderY+=pose.shoulderY;
   calibration.x += pose.x;
   calibration.lean += pose.lean;
   calibration.shoulderAngle+=pose.shoulderAngle;
@@ -1048,6 +1193,7 @@ function recordCalibration(pose, now) {
   bar.value = Math.min(1,(now-calibration.started)/CALIBRATION_MS);
   if (bar.value < 1) return;
   neutral = {
+    lift:calibration.lift/calibration.count,
     lean:calibration.lean/calibration.count,
     shoulderAngle:calibration.shoulderAngle/calibration.count,
     headAngle:calibration.headCount?calibration.headAngle/calibration.headCount:null
@@ -1056,7 +1202,7 @@ function recordCalibration(pose, now) {
   $('calibrationHint').textContent=tr('校准完成，正在进入选关');
   cameraStatus(tr('校准完成。向左右倾斜选关，拍翅确认。'));
   updateCameraButtons();
-  startLevelSelection('body');
+  startHandPractice();
 }
 
 function drawVideoPreview() {
@@ -1116,6 +1262,8 @@ function updatePose(now) {
   latestPose = readPose(landmarks,aspect);
   if(game.phase==='calibrating'&&calibration)recordCalibration(latestPose,now);
   if (!latestPose) {
+    motion.leanCandidate=0;
+    motion.steerDirection=0;
     motion.escapeAt=null;
     motion.raised=false;
     motion.candidate=null;
@@ -1126,7 +1274,7 @@ function updatePose(now) {
     return;
   }
   lastValidAt = now;
-  if (mode==='body' && neutral && ['levelSelect','launch','approach','dive','grab','chase'].includes(game.phase)) {
+  if (mode==='body' && neutral && ['handPractice','levelSelect','launch','approach','dive','grab','chase'].includes(game.phase)) {
     if (trackingPaused) {
       trackingPaused = false;
       motion = makeMotion();
@@ -1135,9 +1283,10 @@ function updatePose(now) {
       game.lean = 0;
       refreshCue();
     }
-    const handPhase=game.phase==='grab'||game.phase==='dive'||
+    const learning=game.phase==='handPractice';
+    const handPhase=learning&&practice.step>=0&&!practice.completed||game.phase==='grab'||game.phase==='dive'||
       game.phase==='approach'&&game.grabReady;
-    if (handPhase && game.carry<MAX_FRIES && now-motion.handSampleAt>=BODY_INPUT_PERF.handIntervalMs) {
+    if (handPhase && (learning || game.carry<MAX_FRIES) && now-motion.handSampleAt>=BODY_INPUT_PERF.handIntervalMs) {
       motion.handSampleAt = now;
       try {
         detectHand(latestPose,aspect,now);
@@ -1151,7 +1300,7 @@ function updatePose(now) {
         cameraStatus(tr('手势识别中断。请重新开启摄像头。'),true);
       }
     }
-    trackMotion(latestPose,now);
+    if(latestPose && (!learning || practice?.step===-1))trackMotion(latestPose,now);
   }
 }
 
@@ -1298,7 +1447,7 @@ async function openCamera() {
     cameraStatus(model ? (track.label || tr('摄像头已连接'))+tr(' · 调整镜头，让双肩和两侧手肘入镜，再校准；不必拍到髋部。')
       : tr('体感识别加载失败。检查网络后重新开启相机。'),!model);
     if(model){
-      calibration={started:null,count:0,x:0,lean:0,shoulderAngle:0,headAngle:0,headCount:0,lift:0};
+      calibration=newCalibration();
       neutral=null;
       $('calibrationProgress').value=0;
       $('calibrationHint').textContent=tr('请自然站立，保持双肩与双肘稳定');
@@ -1316,6 +1465,69 @@ async function openCamera() {
     };
     cameraStatus(hints[error.name] || tr('相机启动失败。请重新选择视频输入。'),true);
   }
+}
+
+const armMonitor=$('armMonitor'), armDiagram=$('armDiagram'), armCaption=$('armCaption');
+const armPen=armDiagram.getContext('2d');
+const armPhases=new Set(['levelSelect','launch','approach','dive','grab','chase']);
+let lastArmFrame=null, lastArmLabel='';
+
+function confirmArmAction(label){
+  if(mode!=='body')return;
+  motion.armLabel=label;
+  motion.armLabelUntil=performance.now()+700;
+}
+
+function renderArmMonitor(now){
+  armMonitor.hidden=Boolean(selectionCountdown) || !stream || !(game.phase==='calibrating' || mode==='body' && armPhases.has(game.phase));
+  if(armMonitor.hidden){lastArmFrame=null;return;}
+  const pose=now-lastPoseAt<=TRACKING_GRACE && latestPose ? landmarks : null;
+  const seen=i=>pose && pose[i] && (pose[i].visibility??1)>.49 &&
+    pose[i].x>.01 && pose[i].x<.99 && pose[i].y>.02 && pose[i].y<.98;
+  const full=seen(13)&&seen(14);
+  const recentAction=now<motion.armLabelUntil && full ? motion.armLabel : '';
+  const steering=full && ['approach','chase'].includes(game.phase) ? motion.steerDirection : 0;
+  const confirmed=Boolean(recentAction || steering);
+  const label=tr(!pose?'等待手臂入镜':!full?'请让双肘入镜':recentAction || (steering?
+      (steering<0?'已识别左倾':'已识别右倾'):!seen(15)||!seen(16)?'手腕未完全入镜':'手臂追踪中'));
+  if(lastArmFrame===pose && lastArmLabel===label && armCaption.textContent===label)return;
+  lastArmFrame=pose;lastArmLabel=label;
+  if(armCaption.textContent!==label)armCaption.textContent=label;
+  armPen.clearRect(0,0,240,128);
+  if(!pose)return;
+  const cx=(pose[11].x+pose[12].x)/2,cy=(pose[11].y+pose[12].y)/2;
+  const aspect=video.videoWidth/video.videoHeight || 1;
+  const width=Math.max(.08,Math.abs(pose[11].x-pose[12].x)*aspect);
+  const scale=49/width;
+  const points=[];
+  let fit=1;
+  for(let i=11;i<=16;i++){
+    if(!seen(i)) continue;
+    const x=(cx-pose[i].x)*aspect*scale,y=(pose[i].y-cy)*scale;
+    points[i]=[x,y];
+    fit=Math.min(fit,111/(Math.abs(x)||1),56/(Math.abs(y)||1));
+  }
+  armPen.save();
+  armPen.translate(120,64);
+  armPen.scale(fit,fit);
+  armPen.lineCap='round';
+  // A quiet body reference makes the shoulder line legible at HUD scale.
+  armPen.fillStyle='#75969b';
+  armPen.beginPath();armPen.arc(0,-15,8,0,2*Math.PI);armPen.fill();
+  armPen.beginPath();armPen.moveTo(-19,4);armPen.lineTo(19,4);
+  armPen.lineTo(13,25);armPen.lineTo(-13,25);armPen.closePath();armPen.fill();
+  armPen.strokeStyle=confirmed?'#ffd578':'#90e7d5';
+  armPen.lineWidth=5/fit;
+  for(const [a,b] of [[11,12],[11,13],[13,15],[12,14],[14,16]]){
+    if(!points[a]||!points[b])continue;
+    armPen.beginPath();armPen.moveTo(...points[a]);armPen.lineTo(...points[b]);armPen.stroke();
+  }
+  armPen.fillStyle='#fff2d1';
+  for(const point of points){
+    if(!point)continue;
+    armPen.beginPath();armPen.arc(...point,4/fit,0,2*Math.PI);armPen.fill();
+  }
+  armPen.restore();
 }
 
 function tick(now) {
@@ -1349,6 +1561,8 @@ function tick(now) {
     updateFlight(dt);
     updateView(dt);
   }
+  if(game.phase==='handPractice')updatePractice(now);
+  renderArmMonitor(now);
   if (game.phase==='setup') drawVideoPreview();
   if (game.phase==='calibrating') drawCalibrationPreview();
   if (mode==='body' && stream && ['launch','result'].includes(game.phase)) {
@@ -1370,11 +1584,12 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 
+$('enterPier').onclick=()=>{startAudio();setPhase('setup');$('cameraButton').focus();};
 $('cameraButton').onclick = () => {
   if (stream) {
     closeCamera();
     cameraStatus(tr('摄像头已关闭。'));
-  } else openCamera();
+  } else {startAudio();openCamera();}
 };
 device.onchange = () => { if (stream || opening) openCamera(); };
 navigator.mediaDevices?.addEventListener('devicechange',() => listCameras().catch(() => {}));
@@ -1388,7 +1603,9 @@ $('bodyStart').onclick = () => {
 $('lessonRetry').hidden=true;
 $('lessonSkip').textContent=tr('隐藏指引');
 $('lessonSkip').onclick=()=>{bodyLesson=null;showBodyLesson();};
-$('keyboardStart').onclick = () => startLevelSelection('keyboard');
+$('keyboardStart').onclick = () => {startAudio();startLevelSelection('keyboard');};
+$('repeatPractice').onclick=startHandPractice;
+$('skipPractice').onclick=finishHandPractice;
 $('levelCard1').onclick=()=>chooseLevel(1,true);
 $('levelCard2').onclick=()=>chooseLevel(2,true);
 $('again').onclick = () => beginRound(mode,true);

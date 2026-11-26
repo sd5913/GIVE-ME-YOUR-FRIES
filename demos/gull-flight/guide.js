@@ -52,8 +52,7 @@ function guideCandidate(g) {
   if(g.phase==='dive')return 'grab';
 
   if (g.phase === 'grab') {
-    const npc = g.npcs?.[g.npcIndex];
-    return npc?.stolen ? 'escape' : 'grab';
+    return g.carry && !g.clawOpen ? 'escape' : 'grab';
   }
 
   if (g.phase === 'chase') {
@@ -99,10 +98,6 @@ function updateGuide(g, now) {
     guideKey = key;
     previousObstacle = obstacle;
 
-    const copy = guideCopy[key] || [
-      '↔', '注意避让', 'Dodge the obstacle'
-    ];
-
     const animate = currentLevel === 1
       ? !guideShown.has(key)
       : Boolean(obstacle && !seenObstacleTypes.has(key));
@@ -110,59 +105,72 @@ function updateGuide(g, now) {
     guideShown.add(key);
 
     panel.dataset.animate = String(animate);
-    panel.dataset.action = key === 'grab' ? 'hand' : key;
 
-    document.getElementById('lessonProgress').textContent =
-      currentLevel === 1
-        ? 'LEVEL 01 · TUTORIAL'
-        : 'LEVEL 02 · CHALLENGE';
-
-    const english = document.documentElement.lang === 'en';
-
-    document.getElementById('lessonTitle').textContent =
-      english ? copy[2] : copy[1];
-
-    document.getElementById('lessonDetail').textContent =
-      mode === 'keyboard'
-        ? (
-            ['flap', 'crates', 'highCrates', 'escape'].includes(key)
-              ? 'W / SPACE'
-              : key === 'grab'
-                ? 'E'
-                : key === 'glide'
-                  ? 'GLIDE DOWN'
-                  : 'A / D'
-          )
-        : english ? copy[1] : copy[2];
-
-    document.getElementById('lessonDemo').innerHTML = `
-      <span>${copy[0]}</span>
-      <svg viewBox="0 0 240 160">
-        <g class="demo-person"
-          fill="none"
-          stroke="#fff2ca"
-          stroke-width="10"
-          stroke-linecap="round">
-          <circle cx="120" cy="22" r="13"
-            fill="#ffd46e" stroke="none"/>
-          <path d="M120 47V104M120 104L100 145M120 104L140 145"/>
-          <g class="demo-arm left">
-            <path d="M110 52L77 69L42 61"/>
-          </g>
-          <g class="demo-arm right">
-            <path d="M130 52L163 69L198 61"/>
-          </g>
-        </g>
-      </svg>`;
-
-    if (key === 'grab' && animate) {
-      document.getElementById('lessonDemo').innerHTML =
-        '<span class="hand-open">✋</span>' +
-        '<span class="hand-closed">✊</span>';
-    }
   }
 
-  panel.hidden = [
-    'setup', 'hit', 'home', 'result', 'dive'
-  ].includes(g.phase);
+  const detail = document.getElementById('lessonDetail');
+  const confirmed = mode==='body' && !trackingPaused && latestPose?.span != null &&
+    now<motion.armLabelUntil ? tr(motion.armLabel) : '';
+  panel.dataset.confirmed=String(Boolean(confirmed));
+  panel.hidden=mode!=='body'||g.phase==='home'||trackingPaused;
+
+  const hands=key==='grab';
+  const fist=hands && (g.clawOpen || g.phase==='dive');
+  const motionType=hands?'hand':
+    ['flap','crates','highCrates'].includes(key)?'flap':
+    key==='escape'?'spread':key==='glide'?'glide':key==='home'?'home':'lean';
+  let direction=0;
+  if(motionType==='lean'){
+    if(key==='lean')direction=Math.sign(routeX(g.target)-g.x);
+    else {
+      const hazard=obstacleX(obstacle,g.routeTime,obstacle.z);
+      const clearance=OBSTACLE_TYPES[key].width/2+20;
+      if(Math.abs(g.x-hazard)<clearance){
+        direction=hazard>0?-1:hazard<0?1:g.x<0?-1:1;
+      }else panel.hidden=true;
+    }
+  }
+  panel.dataset.direction=direction<0?'left':direction>0?'right':'';
+  const art=fist?'fist':hands?'palm':motionType;
+  const title=hands ? tr(fist?'用同一只手握拳':'张开五指') :
+    direction ? tr(direction<0?'向左侧倾':'向右侧倾') : guideCopy[key]?.[document.documentElement.lang==='en'?2:1] ?? tr('注意避让');
+  const heading=document.getElementById('lessonTitle');
+  if(heading.textContent!==title)heading.textContent=title;
+  if(detail.textContent!==(confirmed?'✓ '+confirmed:''))detail.textContent=confirmed?'✓ '+confirmed:'';
+  if(panel.dataset.art!==art){
+    panel.dataset.art=art;
+    panel.dataset.motion=motionType;
+    document.getElementById('lessonDemo').innerHTML=gestureIllustration(art);
+  }
+}
+
+function gestureIllustration(art){
+  const hand=art==='palm'||art==='fist';
+  const arrows={
+    flap:'M20 44v34m-6-7 6 7 6-7m-12-20 6-7 6 7 M160 44v34m-6-7 6 7 6-7m-12-20 6-7 6 7',
+    lean:'M123 40h28m-10-8 10 8-10 8',
+    spread:'M28 85H14l6-6m-6 6 6 6 M152 85h14l-6-6m6 6-6 6',
+    glide:'M146 47v31m-7-7 7 7 7-7'
+  };
+  const armsOut=art==='flap'||art==='spread';
+  const arm='<path d="M72 59Q61 56 51 63L38 66 25 64Q20 63 18 67Q16 71 22 74L38 77Q43 78 48 76L74 70Z"/><path class="guide-shirt" d="M76 62Q68 55 60 59L52 63 57 75 75 71Z"/>';
+  const figure=`<g class="guide-person">
+    <g class="guide-sleeve left"><g transform="rotate(${armsOut?0:-53} 68 65)">${arm}</g></g>
+    <g class="guide-sleeve right">
+      <g transform="rotate(${armsOut?0:53} 112 65) translate(180 0) scale(-1 1)">${arm}</g>
+    </g>
+    <path class="guide-shorts" d="M75 101H105L107 120H96L90 111 84 120H73Z"/>
+    <path d="M85 48H95V62H85Z"/>
+    <path class="guide-shirt" d="M64 62Q74 56 83 56Q90 64 97 56Q106 56 113 61L111 73 103 70 105 102Q90 106 75 102L77 70 69 73Z"/>
+    <path class="guide-stripe" d="M78 80H102M77 91H103"/>
+    <path d="M78 39Q78 27 90 27Q102 27 102 39V43Q100 54 90 55Q80 54 78 43Z"/>
+    <path class="guide-hair" d="M78 40Q75 28 87 26Q100 23 103 35L101 41Q99 35 94 34Q87 39 78 40Z"/>
+  </g>`;
+  return `<svg viewBox="0 0 180 145">
+    <ellipse class="guide-disc" cx="90" cy="72" rx="81" ry="68"/>
+    ${hand?`<use class="guide-hand" href="#guide-${art}" transform="translate(-32 7) scale(.92 .9)" stroke="currentColor" stroke-width="3"/>`:art==='home'
+      ?'<path class="guide-arrow" d="M57 78q33 29 66 0zM69 65l10 13m9-15 4 15m13-14-5 14"/>'
+      :figure}
+    <path class="guide-arrow" d="${arrows[art]||''}"/>
+  </svg>`;
 }

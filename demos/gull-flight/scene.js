@@ -264,7 +264,6 @@ const visitorShirt = new Path2D('M-8 -44 Q-19 -44 -24 -35 L-16 -29 L-13 -32 Q-18
 // One silhouette from sleeve to fingertips avoids a joint across the wrist.
 // Forearm crosses the chest; fingertips curl around the near face of the carton.
 const visitorNearArm = new Path2D('M17 -35 Q22 -36 24 -31 L24 -23 Q24 -18 18 -18 L2 -21 Q-1 -20 -5 -22 L-9 -24 Q-11 -26 -9 -28 Q-11 -30 -8 -31 L-4 -30 Q-5 -33 -3 -33 Q0 -33 2 -28 L17 -26 Z');
-const visitorCuff = new Path2D('M13 -43 Q19 -43 24 -36 L21 -31 Q17 -31 13 -34 L10 -37');
 const visitorHat = new Path2D('M-17 -75 L-15 -86 C-12 -90 9 -90 13 -86 L17 -75 Q0 -70 -17 -75 Z');
 const hatBrim = new Path2D('M-25 -75 Q-16 -78 2 -77 Q18 -77 24 -74 Q27 -72 21 -71 Q3 -68 -20 -71 Q-29 -72 -25 -75 Z');
 const deckShoe = new Path2D('M-3 -3 Q0 -1 4 -4 L6 -1 L6 3 Q2 5 -9 4 Q-12 3 -11 1 Q-10 -1 -6 -1 Z');
@@ -421,10 +420,6 @@ function drawOwner(game,project,now) {
   paint.lineWidth=1.7;
   paint.stroke(visitorNearArm);
   line([[-8,-27],[-4,-26]],'#ba8264',1);
-  paint.fillStyle='#fff1cd';
-  paint.fill(visitorCuff);
-  paint.stroke(visitorCuff);
-  line([[15,-40],[20,-38]],'#277b7d',2);
   paint.restore();
 }
 

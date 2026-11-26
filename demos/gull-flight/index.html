@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GIVE ME YOUR FRIES! · 海鸥俯冲</title>
-<link rel="stylesheet" href="flight.css?v=21">
+<link rel="stylesheet" href="flight.css?v=30">
 </head>
 <body>
-<main id="stage" data-phase="setup" aria-label="海鸥俯冲">
+<main id="stage" data-phase="welcome" aria-label="海鸥俯冲">
   <canvas id="flight" width="1280" height="720" aria-label="第一人称码头，屏幕两侧是海鸥的翅膀"></canvas>
   <div class="shade"></div>
   <div class="chrome">
@@ -19,23 +19,27 @@
     </div>
   </div>
 
-  <section id="setup" class="sheet" aria-labelledby="title">
+  <section id="welcome" aria-labelledby="welcomeTitle">
+    <svg class="heist-gull" viewBox="0 0 260 150" aria-hidden="true">
+      <g stroke="#203c4c" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M22 136Q37 113 66 106Q42 59 24 55Q51 49 84 69Q61 32 50 27Q94 34 120 75Q139 77 149 70Q146 33 169 22Q199 8 211 35Q218 57 201 70Q192 111 147 127Q104 141 56 124Z" fill="#fff6db"/>
+        <path d="M201 45Q232 43 250 57L204 63Z" fill="#ffbd59"/>
+        <path d="M218 55l9 2-11 40-9-3z" fill="#ffcf62"/>
+        <circle cx="191" cy="40" r="5" fill="#203c4c"/>
+        <path d="M183 30l12 3M99 90q21 13 41 5" fill="none"/>
+      </g>
+    </svg>
+    <h1 id="welcomeTitle">GIVE ME YOUR <em>FRIES!</em></h1>
+    <p>你盯薯条，我盯游客。</p>
+    <button id="enterPier" class="primary" type="button">开偷！</button>
+  </section>
+  <section id="setup" class="sheet" hidden aria-labelledby="title">
     <div class="setup-copy">
+      <h2 id="title">起飞准备</h2>
       <label class="language-choice">语言 / Language <select id="language"><option value="zh-CN">中文</option><option value="en" lang="en">English</option></select></label>
-      <h1 id="title">海鸥俯冲<span>抢薯条，飞回巢。</span></h1>
-      <p class="intro">抢走游客的薯条，看他气得脸红！拍翅向上逃跑，飞越货箱、绕开招牌，把薯条带回巢。</p>
-      <dl class="controls-guide">
-        <div><dt>拍翅</dt><dd>起飞、逃跑、飞越货箱</dd></div>
-        <div><dt>侧倾</dt><dd>转向、绕开招牌</dd></div>
-        <div><dt>靠近薯条</dt><dd>键盘自动接近 · 体感自然下降</dd></div>
-        <div><dt>抓一根</dt><dd>键盘按 E · 体感张手再握拳</dd></div>
-      </dl>
-      <div class="start-buttons">
-        <button id="bodyStart" type="button" class="primary" disabled hidden>开始体感</button>
-        <button id="keyboardStart" type="button" class="secondary">键盘选择关卡</button>
-      </div>
-      <p class="keys"><kbd>空格</kbd> / <kbd>W</kbd> 拍翅、升空、逃跑<br><kbd>A</kbd> <kbd>D</kbd> 左右转向　<kbd>E</kbd> 每按一次抓一根<br>对准薯条后自动接近。游客变红时，立即拍翅飞走！</p>
-      <p class="keys">体感：停止拍翅自然下降，张开手掌再握拳抓薯条；游客变红时双臂展开逃跑。回巢路上拍翅越过货箱，侧倾绕开招牌。</p>
+      <button id="bodyStart" type="button" class="primary" disabled hidden>开始体感</button>
+      <button id="keyboardStart" type="button" class="secondary">用键盘出发 →</button>
+      <details><summary>键盘操作</summary><p class="keys"><kbd>W</kbd> / <kbd>空格</kbd> 拍翅　<kbd>A</kbd> / <kbd>D</kbd> 转向　<kbd>E</kbd> 抓取</p></details>
     </div>
     <div class="camera-panel">
       <div id="preview" class="preview">
@@ -45,6 +49,7 @@
       </div>
       <label for="device">视频输入</label>
       <select id="device"><option value="">系统默认摄像头</option></select>
+      <p class="status">体感准备：站在镜头中央，面向屏幕，双臂自然垂在身侧。让双肩和双肘入镜，再开启摄像头。</p>
       <div class="camera-buttons">
         <button id="cameraButton" type="button">开启摄像头</button>
         <button id="calibrate" type="button" disabled hidden>校准站位</button>
@@ -56,13 +61,73 @@
   <section id="calibrationScreen" class="calibration-screen" hidden aria-live="polite">
     <canvas id="calibrationCanvas" width="640" height="360" aria-label="上半身姿态校准镜像"></canvas>
     <div class="calibration-instructions">
-      <h2>请让双肩入镜</h2>
-      <p>Keep both shoulders in view</p>
+      <h2>记录你的起始姿势</h2>
+      <p>自然站直，手臂放松，保持约两秒。进度条走满后再侧倾选关。</p>
       <progress id="calibrationProgress" value="0" max="1" aria-label="自动校准进度"></progress>
       <span id="calibrationHint">请自然站立，保持双肩与双肘稳定</span>
     </div>
   </section>
 
+  <section id="handSchool" hidden aria-labelledby="practiceTitle">
+    <article class="practice-card">
+      <button type="button" id="skipPractice">跳过练习</button>
+      <div id="practiceFlightArt" class="practice-art" aria-hidden="true"></div>
+      <svg class="practice-art practice-hand-art" viewBox="0 0 280 150" aria-hidden="true">
+        
+        <g stroke="#263f50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <g class="pose-reach">
+            <path d="M96 143l5-52q5-19 24-22h23q21 0 29 20l8 54" fill="#377a7c"/>
+            <path d="M103 101h66m-68 13h70" stroke="#f7e8c2" stroke-width="6"/>
+            <circle cx="137" cy="48" r="22" fill="#ffca9b"/>
+            <path d="M111 43l5-16q17-10 38-1l5 15zm-8 0q29-8 63-2l-2 5-60 2z" fill="#e8b767"/>
+            <path d="M163 92q12 5 11 17t-14 8l-21-18 7-8 14 11z" fill="#ffca9b"/>
+            <path d="M139 101q-9-3-10-13l-2-11q0-4 4-2l4 8-2-17q1-4 4-1l3 14-1-17q2-4 5 0l2 16 1-12q2-3 4 0l1 17q2 10-6 16z" fill="#ffce9b"/>
+            <path d="M194 106q11-24-2-40m-2 11 1-13 12 5" fill="none" stroke="#c55c45"/>
+          </g>
+          <g class="pose-palm"><g id="guide-palm">
+            <path d="M119 135l2-24q-9-7-14-18L88 73q-4-7 2-10 4-2 9 3l15 14-10-44q-1-7 5-8 5-1 7 6l10 33-3-44q0-7 6-8 6 0 7 8l4 42 5-43q1-7 7-6 6 1 5 8l-4 44 11-32q2-6 7-4 5 2 3 8l-10 43q-2 16-11 25l2 27z" fill="#ffca95"/>
+            <path d="M119 87q9-11 20-9m-13 23q13 3 22-3" fill="none" stroke="#ce8868"/>
+            <path d="M113 127l45-2 2 18h-49z" fill="#377a7c"/>
+          </g></g>
+          <g class="pose-fist"><g id="guide-fist">
+            <path class="practice-fry" d="M159 103l-8-72 11-2 11 73z" fill="#ffd36e"/>
+            <path d="M114 135l4-27q-13-13-14-30l1-18q0-9 8-9 4-10 13-8 6-8 16-4 11-2 16 6 11 0 13 13l-1 27q-1 14-13 25l2 25z" fill="#ffca95"/>
+            <path d="M113 54l-1 16q1 8 9 6m4-29-2 22q1 8 9 6m10-32-3 23q0 8 8 7m10-23-2 17" fill="none" stroke="#b67759"/>
+            <path d="M107 83q-2-12 7-15l26-5q9-1 9 6 0 5-7 8l-15 7q-1 10-9 12" fill="#ffca95"/>
+            <path d="M111 127l49-2 2 18h-53z" fill="#377a7c"/>
+          </g></g>
+        </g>
+      </svg>
+      <h2 id="practiceTitle"></h2><p id="practiceHint" role="status"></p>
+      <svg class="practice-celebration" viewBox="0 0 240 162" aria-hidden="true">
+        <defs>
+          <g id="graduationFry" stroke="#68472e" stroke-width="1.8" stroke-linejoin="round">
+            <path d="M-4 0l1-24 6-1 2 24-4 3z" fill="#ffca59"/>
+            <path d="M-1-21v15" fill="none" stroke="#fff1af"/>
+          </g>
+        </defs>
+        <g transform="translate(120 106)">
+          <use href="#graduationFry" class="fry-pop" style="--x:-82px;--y:-52px;--fall:-121px;--spin:-108deg;--delay:190ms"/>
+          <use href="#graduationFry" class="fry-pop" style="--x:-55px;--y:-72px;--fall:-81px;--spin:-60deg;--delay:245ms"/>
+          <use href="#graduationFry" class="fry-pop" style="--x:-25px;--y:-76px;--fall:-37px;--spin:-29deg;--delay:140ms"/>
+          <use href="#graduationFry" class="fry-pop" style="--x:9px;--y:-80px;--fall:13px;--spin:27deg;--delay:235ms"/>
+          <use href="#graduationFry" class="fry-pop" style="--x:41px;--y:-76px;--fall:61px;--spin:65deg;--delay:155ms"/>
+          <use href="#graduationFry" class="fry-pop" style="--x:77px;--y:-59px;--fall:114px;--spin:110deg;--delay:215ms"/>
+          <use href="#graduationFry" class="fry-pop" style="--x:-66px;--y:-51px;--fall:-98px;--spin:-90deg;--delay:670ms"/>
+          <use href="#graduationFry" class="fry-pop" style="--x:29px;--y:-70px;--fall:43px;--spin:46deg;--delay:720ms"/>
+          <use href="#graduationFry" class="fry-pop" style="--x:62px;--y:-45px;--fall:92px;--spin:86deg;--delay:760ms"/>
+        </g>
+        <g class="fry-carton" stroke="#253e4c" stroke-width="3.5" stroke-linejoin="round">
+          <use href="#graduationFry" transform="translate(105 111) rotate(-15) scale(1.4)"/>
+          <use href="#graduationFry" transform="translate(119 112) rotate(-3) scale(1.6)"/>
+          <use href="#graduationFry" transform="translate(134 110) rotate(15) scale(1.35)"/>
+          <path d="M84 98q36 14 72 0l-10 54H95z" fill="#e77954"/>
+          <path d="M90 105q29 10 59 1l-2 5q-31 5-56-2z" fill="#ffb579" stroke="none"/>
+          <path d="M104 130q8-3 15 4 6-10 17-12" fill="none" stroke="#fff1ce" stroke-linecap="round"/>
+        </g>
+      </svg>
+    </article>
+  </section>
   <section id="levelSelect" class="level-select" hidden aria-labelledby="levelSelectTitle">
     <p class="level-kicker">GULL FLIGHT · SELECT A ROUTE</p>
     <h2 id="levelSelectTitle">选择关卡</h2>
@@ -77,9 +142,17 @@
       </button>
     </div>
     <p id="levelSelectHint" class="level-hint">左右方向键切换 · 空格确认</p>
-    <p id="levelCountdown" class="level-countdown" hidden></p>
+    <button type="button" id="repeatPractice" hidden>重练动作</button>
+    <div id="levelCountdown" hidden>
+      <strong id="countdownDigit" role="status"></strong>
+      <span id="countdownPaused" hidden>回到镜头前继续</span>
+    </div>
   </section>
 
+  <aside id="armMonitor" hidden aria-label="实时手臂">
+    <canvas id="armDiagram" width="240" height="128" aria-hidden="true"></canvas>
+    <span id="armCaption" role="status"></span>
+  </aside>
   <div id="hud" class="hud" hidden>
     <div id="routeHud"><b id="levelLabel"></b><span id="zoneLabel"></span><progress id="routeProgress" max="100" value="0"></progress><span id="wantedLabel"></span><span id="npcLabel"></span></div>
     <div id="dangerGlow" aria-hidden="true" hidden></div>
@@ -116,20 +189,21 @@
       <button id="back" type="button" class="secondary">返回设置</button>
     </div>
   </section>
-</main>
 <aside id="bodyLesson" hidden aria-label="体感动作练习">
-  <small id="lessonProgress"></small>
+  <small id="lessonProgress" hidden></small>
   <div id="lessonDemo" aria-hidden="true"></div>
   <strong id="lessonTitle"></strong>
   <p id="lessonDetail" role="status"></p>
-  <button id="lessonRetry" type="button">重练</button>
-  <button id="lessonSkip" type="button">跳过练习</button>
+  <button id="lessonRetry" type="button" hidden>重练</button>
+  <button id="lessonSkip" type="button" hidden>跳过练习</button>
 </aside>
-<script src="language.js?v=21"></script>
-<script src="scene.js?v=21"></script>
+</main>
+
+<script src="language.js?v=30"></script>
+<script src="scene.js?v=30"></script>
 <script src="levels.js"></script>
-<script src="obstacles.js"></script>
-<script src="guide.js"></script>
-<script src="flight.js?v=21"></script>
+<script src="obstacles.js?v=22"></script>
+<script src="guide.js?v=30"></script>
+<script src="flight.js?v=30"></script>
 </body>
 </html>

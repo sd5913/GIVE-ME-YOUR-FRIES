@@ -6,32 +6,11 @@
   --line:#d2e4e957;
   font-family:"DM Sans",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;
 }
-#bodyLesson{position:fixed;z-index:8;right:18px;top:140px;width:min(300px,40vw);padding:14px;background:#102c3af2;border:2px solid #ffd578;border-radius:15px;color:#fff3d6}
-#bodyLesson small,#bodyLesson strong{display:block}
-#bodyLesson strong{font-size:21px}
-#bodyLesson p{margin:8px 0;line-height:1.45;font-size:15px}
-#bodyLesson button{padding:5px 9px;border:1px solid #ffd578;border-radius:7px;background:#234959;margin:3px;color:#fff3d6}
-#lessonDemo{font-size:42px;text-align:center}
-#lessonDemo svg{display:block;width:100%;height:145px}
-.demo-arm.left{transform-origin:110px 52px;--turn:-55deg}
-.demo-arm.right{transform-origin:130px 52px;--turn:55deg}
-[data-action="flap"] .demo-arm{animation:demo-arm 1.4s ease-in-out infinite}
-[data-action="tuck"] .demo-arm.left{--turn:-78deg}
-[data-action="tuck"] .demo-arm.right{--turn:78deg}
-[data-action="tuck"] .demo-arm{animation:demo-arm 2.4s ease-in-out infinite}
-[data-action="spread"] .demo-arm{animation:demo-arm 2.4s ease-in-out infinite reverse}
-[data-action="lean"] .demo-person{transform-origin:120px 145px;animation:demo-lean 2.8s ease-in-out infinite}
-@keyframes demo-arm{0%,15%,100%{transform:rotate(0)}45%,65%{transform:rotate(var(--turn))}}
-@keyframes demo-lean{0%,100%{transform:rotate(-16deg)}50%{transform:rotate(16deg)}}
 #wingPrompt{position:absolute;inset:40% 7% auto;display:flex;justify-content:space-between;pointer-events:none;z-index:3}
 #wingPrompt span{font-size:clamp(65px,13vw,180px);filter:drop-shadow(0 3px 5px #102c3a);transform-origin:bottom right;animation:prompt-wing 1.4s ease-in-out infinite}
 #wingPrompt span:last-child{scale:-1 1}
 @keyframes prompt-wing{0%,100%{transform:rotate(-20deg) translateY(-14px)}50%{transform:rotate(25deg) translateY(14px)}}
-@media(prefers-reduced-motion:reduce){.demo-arm,.demo-person,#wingPrompt span{animation:none!important}}
-body:has(#bodyLesson:not([hidden])) #motionStatus{left:18px;top:160px;transform:none;max-width:calc(60vw - 50px);font-size:clamp(16px,2vw,24px)}
-@keyframes lesson-motion{from{transform:translateY(-5px) scale(.94)}to{transform:translateY(5px) scale(1.06)}}
-@media(prefers-reduced-motion:reduce){#lessonDemo{animation:none}}
-@media(max-height:650px){#bodyLesson{top:95px;padding:8px}#lessonDemo{font-size:28px}}
+@media(prefers-reduced-motion:reduce){#wingPrompt span{animation:none!important}}
 * { box-sizing:border-box }
 [hidden] { display:none!important }
 body { margin:0; background:#0e2d3a; color:var(--paper) }
@@ -187,7 +166,7 @@ progress { width:100%;accent-color:#ffd578 }
 }
 .secondary,.camera-buttons button,.tools button {background:#26505b;color:#fff3d6}
 .primary {background:#ffd178;color:#233e50}
-.hud-stats > div:first-child,.cue,.timer,#bodyLesson,#motionStatus {
+.hud-stats > div:first-child,.cue,.timer,#motionStatus {
   background:#193d49;border:2px solid #edd2a0;
   box-shadow:0 2px 0 1px #233e50,inset 0 2px #ffffff12;
 }
@@ -237,78 +216,9 @@ html[lang=en] .cue p {white-space:normal;font-size:clamp(24px,3.6vw,46px)}
 [data-phase=grab] .cue {left:clamp(12px,4vw,58px);bottom:6vh;transform:none;text-align:left;width:min(45vw,580px);min-width:0;padding:0}
 [data-phase=grab] .cue p {white-space:normal;font-size:clamp(21px,3.15vw,42px)}
 #attackClock .attack-label {font-weight:900;font-size:clamp(14px,1.8vw,24px)}
-/* Non-blocking guide stays in the top HUD gutter, away from the aiming area. */
-#bodyLesson{pointer-events:none;position:absolute;top:58px;right:12px;width:230px;max-width:26vw;padding:8px;z-index:6;font-size:12px}
-#bodyLesson button{display:none!important}
-#bodyLesson strong{font-size:16px;font-weight:600}
-#bodyLesson p{font-size:13px;margin:4px 0}
-#lessonDemo{font-size:26px;display:flex;align-items:center;justify-content:center}
-#lessonDemo svg{width:90px;height:65px}
-#bodyLesson[data-animate="false"] svg{display:none}
-[data-action="crates"] .demo-arm,[data-action="escape"] .demo-arm{animation:demo-arm 1.4s ease-in-out infinite}
-@media(max-width:700px){#bodyLesson{width:180px;max-width:35vw}#lessonDemo svg{height:45px}#bodyLesson strong{font-size:13px}#bodyLesson p{font-size:11px}}
 #routeHud{position:absolute;top:80px;left:20px;display:flex;flex-direction:column;gap:4px;font-size:clamp(12px,1.3vw,18px);color:#fff3d6;text-shadow:0 2px 3px #102c3a;max-width:25vw;pointer-events:none}
 #routeProgress{width:180px;max-width:100%;height:9px;accent-color:#ffd578}
-#bodyLesson{left:50%;right:auto;transform:translateX(-50%);top:65px;width:360px;max-width:36vw;min-height:95px;background:#102c3ae8}
-#lessonDemo{float:left;margin-right:8px;max-width:115px}
-#lessonDemo svg{width:65px}
-#bodyLesson small{font-size:10px}
-#bodyLesson strong{font-size:15px}
-#bodyLesson p{font-size:12px}
-#bodyLesson[data-action="sign"] .demo-person,#bodyLesson[data-action="umbrella"] .demo-person,#bodyLesson[data-action="bunting"] .demo-person,#bodyLesson[data-action="cart"] .demo-person,#bodyLesson[data-action="restaurant"] .demo-person,#bodyLesson[data-action="gull"] .demo-person{transform-origin:120px 145px;animation:demo-lean 2s ease-in-out infinite}
-#bodyLesson[data-action="highCrates"] .demo-arm{animation:demo-arm 1.4s ease-in-out infinite}
-body:has(#bodyLesson:not([hidden])) #motionStatus{top:auto;bottom:22%;left:50%;transform:translateX(-50%);max-width:70%;font-size:clamp(15px,2vw,24px)}
 #routeHud{top:120px}
-#bodyLesson{top:235px;left:18px;transform:none;width:230px;max-width:25vw}
-#lessonDemo{float:none;max-width:none;white-space:nowrap}
-@media(max-height:650px){#bodyLesson{top:180px}#lessonDemo svg{height:40px}#routeHud{top:110px}}
-[data-action="hand"] #lessonDemo{position:relative;height:65px;font-size:48px}
-.hand-open,.hand-closed{position:absolute;left:calc(50% - 28px);animation:hand-swap 1.8s steps(1) infinite}
-.hand-closed{animation-delay:-.9s}
-@keyframes hand-swap{0%,49%{opacity:1}50%,100%{opacity:0}}
-#bodyLesson[data-animate="false"] .hand-open{display:none}
-#bodyLesson[data-animate="false"] .hand-closed{animation:none}
-@media(prefers-reduced-motion:reduce){.hand-open,.hand-closed{animation:none}.hand-closed{display:none}}
-
-/* Tutorial guide refinement */
-
-#bodyLesson {
-  pointer-events: none !important;
-  user-select: none;
-  box-shadow: 0 4px 18px #102c3a44;
-}
-
-#bodyLesson button {
-  display: none !important;
-}
-
-#bodyLesson[data-animate="false"] {
-  min-height: 0;
-  padding: 10px;
-}
-
-#bodyLesson[data-animate="false"] svg {
-  display: none;
-}
-
-#bodyLesson[data-animate="false"] * {
-  animation: none !important;
-}
-
-#bodyLesson[data-action="escape"] .demo-arm {
-  animation: demo-arm 1.4s ease-in-out infinite reverse;
-}
-
-#bodyLesson[data-action="home"] svg {
-  display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #bodyLesson * {
-    animation: none !important;
-  }
-}
-
 .calibration-screen,.level-select {
   position:absolute;z-index:3;inset:0;display:grid;place-items:center;
   background:#102b42ee;color:var(--paper);overflow:hidden;
@@ -367,7 +277,6 @@ body:has(#bodyLesson:not([hidden])) #motionStatus{top:auto;bottom:22%;left:50%;t
 .card-copy strong {font-size:clamp(18px,2.5vw,30px)}
 .card-copy span {font-size:clamp(12px,1.4vw,16px);color:#c6dce0}
 .level-hint {color:#d5e7e6;font-weight:700;text-align:center}
-.level-countdown {color:var(--yellow);font-weight:1000;font-size:clamp(28px,5vw,56px);font-variant-numeric:tabular-nums}
 #stage[data-phase="calibrating"] .chrome,#stage[data-phase="levelSelect"] .chrome {z-index:5}
 @media(max-width:620px) {
   .level-cards {height:clamp(260px,43vh,370px)}
@@ -379,3 +288,143 @@ body:has(#bodyLesson:not([hidden])) #motionStatus{top:auto;bottom:22%;left:50%;t
 @media(prefers-reduced-motion:reduce) {
   .level-card {transition:none}
 }
+
+#armMonitor {position:absolute;z-index:5;right:clamp(8px,3vw,42px);bottom:17%;width:clamp(98px,12vw,150px);pointer-events:none;text-align:center;color:#fff5d9;background:linear-gradient(90deg,transparent,#143849dd 18% 82%,transparent);padding:4px 3px;font-size:clamp(11px,1vw,14px);font-weight:800}
+#armDiagram {display:block;width:100%;height:auto}
+#armCaption {text-shadow:0 1px 3px #152d3b}
+#stage[data-phase=levelSelect] #armMonitor,#stage[data-phase=calibrating] #armMonitor {bottom:2%}
+#handSchool {position:absolute;inset:0;z-index:4;display:grid;place-items:center;background:#0b2635a8;padding:54px 16px 18px;overflow:auto}
+.practice-card {display:grid;justify-items:center;align-content:center;gap:10px;width:min(100%,720px);text-align:center;color:#fff4de}
+#skipPractice {position:absolute;top:clamp(12px,3vh,30px);right:clamp(12px,4vw,42px);background:#193b49ee;border:0;border-radius:8px;padding:8px 12px}
+#repeatPractice {background:#244955;border-radius:8px;border:0;padding:7px 12px;color:#fff4db}
+.practice-art {display:block;width:min(100%,560px);height:min(47vh,340px)}
+.practice-hand-art {width:min(90vw,660px);opacity:.64;transition:opacity .22s}
+.practice-card h2 {font-size:clamp(30px,min(6.3vw,8vh),68px);line-height:1.1;text-shadow:0 4px 16px #071d2a}
+.practice-card p {font-size:clamp(15px,2.4vw,24px);font-weight:700}
+.practice-card p:empty {display:none}
+.pose-reach,.pose-palm,.pose-fist,.practice-fry,.practice-celebration {display:none}
+#handSchool[data-step="0"] .pose-reach,#handSchool[data-step="1"] .pose-palm,#handSchool[data-step="2"] .pose-fist,
+#handSchool[data-ok="yes"] .practice-fry {display:inline}
+#handSchool[data-ok="yes"] .practice-hand-art {opacity:1}
+#handSchool[data-ok="yes"] .practice-hand-art #guide-palm path[fill="#ffca95"],
+#handSchool[data-ok="yes"] .practice-hand-art #guide-fist path[fill="#ffca95"] {fill:#9df1bc;stroke:#24624c}
+#handSchool[data-ok="yes"] h2 {color:#a4f7c1}
+#handSchool[data-step="complete"] .practice-hand-art {display:none}
+#handSchool[data-step="complete"] .practice-celebration {display:block;order:-1;width:min(58vw,260px);height:min(37vh,200px)}
+#handSchool[data-step="complete"] .practice-celebration {width:min(86vw,470px);height:min(39vh,320px)}
+#handSchool[data-step="complete"] h2 {color:#ffe39a}
+.fry-pop {opacity:0}
+@media(prefers-reduced-motion:no-preference) {
+  .fry-pop {animation:fry-spray 1.3s var(--delay) both}
+  .fry-carton {transform-origin:120px 152px;animation:carton-pop .8s ease-out}
+  #handSchool[data-step="complete"] h2 {animation:graduation-rise .45s ease-out both}
+  @keyframes fry-spray {
+    0% {opacity:0;transform:scale(.55);animation-timing-function:ease-out}
+    8% {opacity:1}
+    52% {opacity:1;transform:translate(var(--x),var(--y)) rotate(var(--spin));animation-timing-function:ease-in}
+    100% {opacity:0;transform:translate(var(--fall),35px) rotate(var(--spin)) scale(.75)}
+  }
+  @keyframes carton-pop {
+    0%,100% {transform:none}
+    19% {transform:scale(1.12,.82)}
+    43% {transform:translateY(-8px) scale(.94,1.08) rotate(-3deg)}
+    73% {transform:rotate(2deg)}
+  }
+  @keyframes graduation-rise {from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+}
+#levelCountdown {position:absolute;inset:0;z-index:3;display:grid;place-items:center;background:radial-gradient(ellipse at center,#173d4bd9,#091e2cf2)}
+#countdownDigit {display:block;color:#ffda89;font-variant-numeric:tabular-nums;font-size:min(43vh,48vw);line-height:1;font-weight:1000;text-shadow:0 .035em #a44c36,0 0 .22em #ffb26380}
+#countdownPaused {position:absolute;top:73%;color:#fff4de;font-size:clamp(16px,2.5vw,28px)}
+#levelCountdown.paused #countdownDigit {animation-play-state:paused;opacity:.55}
+@media(prefers-reduced-motion:no-preference) {
+  .countdown-beat {animation:countdown-beat .92s cubic-bezier(.16,.84,.33,1) both}
+  @keyframes countdown-beat {0%{scale:.72}24%{scale:1.15}100%{scale:.91}}
+}
+
+/* Center the gesture above the control details, below the aiming area. */
+#bodyLesson {
+  --guide-outline:#ffda89;
+  position:absolute;z-index:6;left:50%;bottom:clamp(48px,9.5vh,84px);
+  transform:translateX(-50%);width:min(90vw,420px);
+  pointer-events:none;text-align:center;color:#fff4d8;user-select:none;
+}
+#lessonDemo {margin:auto;width:clamp(96px,21vh,180px);aspect-ratio:1.18}
+#lessonDemo svg {display:block;width:100%;height:100%;overflow:visible}
+#lessonTitle {display:block;width:fit-content;max-width:100%;margin:-2px auto 0;padding:4px 18px;
+  border-radius:18px;background:#122f3ae8;font-size:clamp(20px,4vh,37px);font-weight:950;line-height:1.15}
+#lessonDetail {margin:4px 0 0;font-weight:850;font-size:clamp(13px,2.4vh,19px);color:var(--guide-outline);
+  text-shadow:0 1px 4px #0c222d,0 1px 2px #0c222d}
+#bodyLesson[data-confirmed="true"] {--guide-outline:#9df1bc}
+#bodyLesson[data-confirmed="true"] #lessonTitle {background:#164635f2}
+.guide-disc {fill:#183e4bdc;stroke:var(--guide-outline);stroke-width:2.5}
+.guide-person,.guide-hand {color:var(--guide-outline);opacity:.94}
+.guide-person path,.guide-person circle {fill:#f5dfadcb;stroke:currentColor;stroke-width:2.4;stroke-linejoin:round}
+.guide-person .guide-shirt {fill:#34777cd9}
+.guide-arrow {fill:none;stroke:var(--guide-outline);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.guide-person {transform-origin:90px 107px}
+.guide-sleeve.left {transform-origin:69px 64px}
+.guide-sleeve.right {transform-origin:111px 64px}
+.guide-hand {filter:drop-shadow(0 0 2px var(--guide-outline))}
+#stage:has(#bodyLesson:not([hidden])) .cue {left:50%;bottom:clamp(10px,2.6vh,24px);transform:translateX(-50%);text-align:center;width:min(91vw,640px);min-width:0}
+#stage:has(#bodyLesson:not([hidden])) .cue p {display:none}
+#stage:has(#bodyLesson:not([hidden])) #motionStatus {top:27%;bottom:auto}
+@media(prefers-reduced-motion:no-preference) {
+  #bodyLesson[data-motion="flap"][data-animate="true"] .guide-sleeve.left {animation:guide-flap 0.78s ease-in-out infinite alternate}
+  #bodyLesson[data-motion="flap"][data-animate="true"] .guide-sleeve.right {animation:guide-flap 0.78s ease-in-out infinite alternate;animation-name:guide-flap-right}
+  #bodyLesson[data-motion="lean"][data-animate="true"] .guide-person {animation:guide-lean 1.6s ease-in-out infinite alternate}
+  #bodyLesson[data-motion="spread"][data-animate="true"] .guide-sleeve.left {animation:guide-open-left 1.55s ease-out infinite}
+  #bodyLesson[data-motion="spread"][data-animate="true"] .guide-sleeve.right {animation:guide-open-right 1.55s ease-out infinite}
+  @keyframes guide-flap {from{rotate:23deg}to{rotate:-18deg}}
+  @keyframes guide-flap-right {from{rotate:-23deg}to{rotate:18deg}}
+  @keyframes guide-lean {from{rotate:-12deg}to{rotate:12deg}}
+  @keyframes guide-open-left {0%{rotate:-44deg}52%,100%{rotate:0deg}}
+  @keyframes guide-open-right {0%{rotate:44deg}52%,100%{rotate:0deg}}
+}
+.guide-person .guide-shorts,.guide-person .guide-hair {fill:#254d5c}
+.guide-person .guide-stripe {fill:none;stroke:#f5dfad9e;stroke-width:3}
+#practiceFlightArt {display:none}
+#practiceFlightArt svg {display:block;height:100%;width:100%;--guide-outline:#ffda89}
+#handSchool[data-step="-1"] #practiceFlightArt {display:block}
+#handSchool[data-step="-1"] .practice-hand-art {display:none}
+#handSchool[data-ok="yes"] #practiceFlightArt svg {--guide-outline:#9df1bc}
+@media(prefers-reduced-motion:no-preference){
+  #practiceFlightArt .guide-sleeve.left {animation:guide-flap 0.78s ease-in-out infinite alternate}
+  #practiceFlightArt .guide-sleeve.right {animation:guide-flap-right 0.78s ease-in-out infinite alternate}
+}
+
+#practiceFlightArt .guide-disc {fill:transparent;stroke:none}
+#handSchool[data-ok="yes"] #practiceFlightArt .guide-sleeve {animation-play-state:paused}
+
+/* Keep the instructional silhouette on its own opaque ink ground. */
+#lessonDemo {filter:drop-shadow(0 3px 2px #102b39);width:clamp(112px,22vh,190px)}
+#lessonDemo .guide-disc {fill:#102f3d;stroke:#ffebb8;stroke-width:4}
+#lessonTitle {background:#102f3d;border-bottom:3px solid var(--guide-outline)}
+#bodyLesson[data-motion="lean"] .guide-person {transform-origin:90px 112px;rotate:var(--bank);animation:none}
+#bodyLesson[data-direction="left"] {--bank:-16deg}
+#bodyLesson[data-direction="right"] {--bank:16deg}
+#bodyLesson[data-direction="left"] .guide-arrow {transform:translateX(180px) scaleX(-1)}
+@media(prefers-reduced-motion:no-preference){
+  #bodyLesson[data-motion="lean"][data-animate="true"] .guide-person {animation:point-the-way .42s ease-out both}
+  @keyframes point-the-way {from{rotate:0deg}to{rotate:var(--bank)}}
+}
+#welcome {text-align:center;display:grid;justify-items:center;align-content:center;gap:clamp(10px,2vh,22px);color:#fff4d5}
+#stage[data-phase="welcome"] .shade {background:linear-gradient(180deg,#16384985,#122d3dcf)}
+#stage[data-phase="welcome"] .wordmark {visibility:hidden}
+.heist-gull {width:min(43vw,260px);height:min(22vh,162px);filter:drop-shadow(0 5px 0 #153346)}
+#welcome h1 {font:1000 clamp(32px,min(8vw,10vh),106px)/.93 system-ui;letter-spacing:-.065em;text-shadow:0 .055em #193848}
+#welcome h1 em {display:block;color:#ffd06b;font-size:1.43em;transform:rotate(-4deg)}
+#welcome p {font-weight:800;text-shadow:0 2px 4px #132d3e}
+#enterPier {font-size:clamp(19px,3vw,28px);min-width:8em;border-radius:50px}
+#setup {max-width:820px;border:0;border-top:5px solid #ffd078;border-radius:8px;background:#fff4dc;box-shadow:0 18px 60px #15354566}
+#setup h2 {font-size:clamp(34px,5vw,60px);letter-spacing:-.04em;line-height:1.1}
+#setup .setup-copy {display:grid;gap:20px}
+#setup .language-choice {justify-content:space-between;margin:0;border-block:1px solid #cebea4;padding:14px 0}
+#setup select {background:#fffaed;color:#203d49;border:1px solid #a59c83;max-width:100%}
+#setup .camera-panel {background:transparent;border:0;box-shadow:none;color:#203d49;padding:0}
+#setup .camera-panel label,#setup .status {color:#385762}
+#setup .status {min-height:0}
+#setup .status.error {color:#9d3328}
+#setup summary {cursor:pointer;font-weight:700}
+#setup .preview {background:#1b3947}
+#setup #cameraButton {background:#ffcf72;color:#203d49;width:100%}
+@media(max-width:660px){#setup .setup-copy{gap:10px}#setup .preview{max-height:18vh;width:100%}}
