@@ -16,7 +16,7 @@ const ESCAPE_SECONDS = 20;
 const LEAN_DEADZONE = .055;
 const ATTACK_NOTICE = .5;
 const ATTACK_CHARGE = 2.3;
-const MAX_FRIES = 3;
+let MAX_FRIES = 3;
 const TRACKING_GRACE = 320;
 const CALIBRATION_MS = 1000;
 const BODY_INPUT = Object.freeze({tuckEnter:1.32,tuckExit:1.46,tuckMs:110,
@@ -163,7 +163,7 @@ function updateHUD() {
   const warning = game.attack && !game.attack.resolved && ['grab','chase'].includes(game.phase);
   $('attackClock').hidden = $('dangerGlow').hidden = !warning;
   if (warning) {
-    const duration = ATTACK_NOTICE + ATTACK_CHARGE;
+    const duration = (game.attack?.duration ?? ATTACK_NOTICE + ATTACK_CHARGE);
     const progress = limit(game.attack.elapsed / duration, 0, 1);
     const pulse = (1 + Math.cos(2*Math.PI*(2*progress + 2*progress*progress))) / 2;
     $('dangerGlow').style.opacity = .36 + .20*progress + .40*pulse;
@@ -180,6 +180,8 @@ function updateHUD() {
 function beginRound(newMode, restart = false) {
   bodyLesson=null;showBodyLesson();
   mode = newMode;
+  const level=LEVELS[currentLevel];
+  TRAY_Z=level.targets[0].z;NEST_Z=level.end;APPROACH_LIMIT=TRAY_Z-293;MAX_FRIES=level.capacity;
   if (mode === 'keyboard') closeCamera();
   startAudio();
   const round = restart ? 1 : game.round+1;
@@ -187,8 +189,9 @@ function beginRound(newMode, restart = false) {
   game = {round,score:restart ? 0 : game.score,target,blocked:target,x:0,z:50,lean:0,
     elapsed:0,flaps:0,ready:false,carry:0,remaining:ESCAPE_SECONDS,boost:0,clawOpen:false,
     clawSnap:0,climb:0,grabPending:0,slow:0,flash:0,
-    obstacles:[{z:1450,kind:'crates',lane:0},{z:2200,kind:'sign',lane:target},
-      {z:2900,kind:'crates',lane:0}]};
+    npcIndex:0,npcs:level.targets.map(n=>({...n,stock:n.stock,stolen:0,attack:null,escaped:false,skipped:false})),
+    obstacles:level.obstacles.map(o=>({...o}))};
+  game.target=game.npcs[0].lane;game.blocked=game.target;
   Object.assign(view,{x:0,z:50,height:140,reach:0,pitch:0,bank:0,lift:0,wings:1,speed:0});
   motion = makeMotion();
   inputLift = keyboardFlap = 0;
@@ -302,7 +305,7 @@ function beginGrab() {
 }
 
 function openClaw(hand) {
-  if (!canAct() || game.phase !== 'grab' || game.clawOpen || game.carry>=MAX_FRIES) return;
+  if (!canAct() || game.phase !== 'grab' || game.clawOpen || game.carry>=MAX_FRIES || !game.npcs[game.npcIndex].stock) return;
   game.clawOpen = true;
   motion.hand = hand;
   tone([[560,0,.075]]);
@@ -314,13 +317,14 @@ function closeClaw(hand) {
   game.clawOpen = false;
   game.clawSnap = .28;
   game.carry++;
+  const npc=game.npcs[game.npcIndex];npc.stock--;npc.stolen++;
   if(bodyLesson)lessonStep(4);
   motion.lastGrabAt=performance.now();
   motion.escapeAt=null;
   motion.escapeArmed=false;
   tone([[740,0,.085],[1050,.06,.11]]);
-  if (game.carry === 2) {
-    game.attack = {elapsed:0,resolved:false};
+  if (npc.stolen === npc.trigger) {
+    game.attack = npc.attack = {elapsed:0,resolved:false,duration:npc.warning};
     playHey();
   }
   refreshCue();
@@ -350,13 +354,14 @@ function keyboardGrab() {
 }
 
 function beginChase(confirmedSpread=false) {
-  if (game.phase !== 'grab' || !game.carry) return;
+  if (game.phase !== 'grab') return;
   if (mode==='body' && !confirmedSpread && (game.clawOpen || motion.candidate)) return;
   motion.candidate=null;
+  game.npcs[game.npcIndex].escaped=true;
   game.z = TRAY_Z+25;
   game.clawOpen = false;
   game.grabPending = 0;
-  game.remaining = ESCAPE_SECONDS;
+  game.remaining = LEVELS[currentLevel].escape;
   game.boost = 1.3;
   game.climb = 1.7;
   game.flash = .48;
@@ -371,7 +376,7 @@ function updateAttack(dt) {
   if (!game.attack || game.attack.resolved) return;
   game.attack.elapsed += dt;
   const escaped = game.phase === 'chase' && game.elapsed>=.16;
-  if (game.attack.elapsed < ATTACK_NOTICE+ATTACK_CHARGE && !escaped) return;
+  if (game.attack.elapsed < (game.attack.duration ?? ATTACK_NOTICE+ATTACK_CHARGE) && !escaped) return;
   game.attack.resolved = true;
   if (escaped) {
     game.feedback = 'TOO SLOW!';
@@ -438,12 +443,16 @@ function updateFlight(dt) {
       game.x = limit(game.x+game.lean*222*dt,-210,210);
       if (linedUp !== isLinedUp(game)) refreshCue();
     }
-    game.z = Math.min(APPROACH_LIMIT,game.z+243*dt);
+    game.z = Math.min(APPROACH_LIMIT,game.z+(currentLevel===2?170:243)*dt);
     if (!game.ready && game.z >= TRAY_Z-323) {
       game.ready = true;
       if (isLinedUp(game)) tone([[690,0,.12]]);
       refreshCue();
     }
+    if(currentLevel===2 && game.z>=APPROACH_LIMIT && !isLinedUp(game)){
+      game.skipWait=(game.skipWait||0)+dt;
+      if(game.skipWait>2){game.npcs[game.npcIndex].skipped=true;setPhase('grab');beginChase(true);}
+    }else game.skipWait=0;
     if (mode==='keyboard' && game.ready && isLinedUp(game) && game.z>=APPROACH_LIMIT) tuck();
   } else if (game.phase === 'dive') {
     const progress = limit(game.elapsed/.63,0,1);
@@ -451,11 +460,11 @@ function updateFlight(dt) {
     game.x = smooth(game.x,routeX(game.target),dt,9);
     if (progress === 1) beginGrab();
   } else if (game.phase === 'chase') {
-    game.remaining -= dt;
+    if(currentLevel===1 || game.z>=5600)game.remaining -= dt;
     game.boost = Math.max(0,game.boost-dt);
     const home = NEST_Z-85;
     const previousZ = game.z;
-    game.z = Math.min(home,game.z+(game.slow ? 130 : game.boost ? 310 : 235)*dt);
+    game.z = Math.min(home,game.z+(currentLevel===2 ? (game.slow?65:game.boost?145:105) : (game.slow ? 130 : game.boost ? 310 : 235))*dt);
     if (mode === 'body') game.x = limit(game.x+game.lean*240*dt,-210,210);
     for (const obstacle of game.obstacles) {
       if (obstacle.passed || obstacle.z>game.z || obstacle.z<previousZ) continue;
@@ -474,6 +483,12 @@ function updateFlight(dt) {
         game.feedbackTime = .75;
         tone([[800,0,.09],[1050,.08,.12]]);
       }
+    }
+    const next=game.npcs[game.npcIndex+1];
+    if(next && game.z>=next.z-650){
+      game.npcIndex++;game.target=next.lane;game.blocked=next.lane;
+      TRAY_Z=next.z;APPROACH_LIMIT=TRAY_Z-293;game.ready=false;game.attack=null;
+      setPhase('approach');refreshCue();
     }
     if (home-game.z<200) game.x = smooth(game.x,routeX(-game.blocked),dt,3.5);
     refreshCue();
