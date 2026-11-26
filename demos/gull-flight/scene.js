@@ -246,7 +246,9 @@ function paintFries(x,y,s,count = 5, highlighted = false) {
 function drawTarget(game, project, now) {
   if (!['setup','launch','approach','dive','grab','hit','chase'].includes(game.phase)) return;
   const [x,y,s] = project(routeX(game.target),22,TRAY_Z);
-  const ready = (game.phase === 'approach' && game.ready && isLinedUp(game)) || game.phase==='grab';
+  const ready = (game.phase==='approach' &&
+    (mode==='keyboard'&&game.ready&&isLinedUp(game)||game.grabReady)) ||
+    game.phase==='dive'||game.phase==='grab';
   const progress = 1-limit((game.clawSnap || 0)/.28,0,1);
   const bounce = ready && !reducedGrabMotion.matches ? .22*Math.sin(progress*Math.PI*2)*(1-progress) : 0;
   const taken = game.phase==='hit' ? game.dropped : game.carry;
@@ -290,8 +292,6 @@ function drawVisitor(x,y,s,anger,side,surprised,recoil) {
   rounded(-16,-20,34,13,5,'#35566a',ink,2);
   paint.lineWidth=2;
   paint.strokeStyle=ink;
-  paint.fillStyle='#ffd1a3';
-
   paint.fillStyle='#fff1cd';
   paint.fill(visitorShirt);
   paint.save();
@@ -428,17 +428,16 @@ function drawOwner(game,project,now) {
   paint.restore();
 }
 
-function drawObstacles(game,project) {
+function drawObstacles(game,project,view) {
   for (const obstacle of [...(game.obstacles || [])].reverse()) {
-    if (obstacle.passed || obstacle.z<game.z+44) continue;
-    const distance = obstacle.z-game.z;
+    const distance=obstacle.z-view.z;
+    if (obstacle.passed && distance<=44) continue;
     if (['crates','highCrates'].includes(obstacle.kind)) {
       const [lx,y,s] = project(-215,0,obstacle.z);
       const [rx] = project(215,0,obstacle.z);
       paint.save();
       paint.translate(lx,y);
       paint.scale((rx-lx)/3,s*(obstacle.kind==='highCrates'?1.25:1));
-      // Each shipping crate has its own boards, raised frame and corner nails.
       for (let i=0;i<3;i++) {
         paint.save();
         paint.translate(i,0);
@@ -456,11 +455,11 @@ function drawObstacles(game,project) {
         paint.restore();
       }
       paint.restore();
-      if (distance<800) {
+      if (distance<worldSpeed(game)*OBSTACLE_REACTION_SECONDS) {
         textAt(tr('↑ 拍翅飞越'), (lx+rx)/2,y-155*s,limit(23*s,20,45),'#fff1b9');
       }
     } else {
-      const [x,y,s] = project(obstacleX(obstacle,game.routeTime||0),0,obstacle.z);
+      const [x,y,s] = project(obstacleX(obstacle,game.routeTime||0,game.z),0,obstacle.z);
       paint.save();paint.translate(x,y);paint.scale(s,s);
       if(obstacle.kind==='sign'){
         if(signArt.complete && signArt.naturalWidth)paint.drawImage(signArt,-62,262*-1,124,262);
@@ -472,13 +471,16 @@ function drawObstacles(game,project) {
         for(let i=-80;i<80;i+=32)shape([[i,-210],[i+26,-210],[i+13,-165]],i%3?'#f7c65c':'#e96650',ink,2);
       }else if(obstacle.kind==='cart'){
         rounded(-50,-100,100,80,5,'#57a59c',ink,4);oval(-30,-15,14,14,ink);oval(30,-15,14,14,ink);rounded(-55,-125,110,24,4,'#ffd578',ink,3);textAt('FRIES',0,-55,19,'#fff3d6');
+        if(!obstacle.passed&&distance<=worldSpeed(game)*3.5)
+          textAt(tr('绕开小车 / 拍翅飞越'),x,y-255*s,limit(23*s,18,38),'#fff1b9');
       }else if(obstacle.kind==='gull'){
         oval(0,-125,28,18,'#fffefa',ink,3);shape([[-20,-130],[-65,-165],[-48,-122],[-20,-114]],'#edf2ee',ink,3);shape([[20,-130],[65,-165],[48,-122],[20,-114]],'#edf2ee',ink,3);shape([[20,-130],[42,-122],[20,-116]],'#ffd578',ink,2);
       }else{
         rounded(-5,-230,10,230,2,'#986138',ink);rounded(-62,-230,124,90,6,'#277b7d',ink,4);textAt('FRIES',0,-180,25,'#ffd578');
       }
       paint.restore();
-      if (distance<800) paintArrow(x,y-265*s,-obstacle.lane,limit(s,1,1.8),'#ffe193');
+      if (!obstacle.passed && distance<worldSpeed(game)*(obstacle.kind==='cart'?3.5:OBSTACLE_REACTION_SECONDS))
+        paintArrow(x,y-265*s,obstacle.kind==='cart'?cartDirection(obstacle):-obstacle.lane,limit(s,1,1.8),'#ffe193');
     }
   }
 }
@@ -616,7 +618,7 @@ function drawFlight(game, view, now) {
       paint.save();paint.globalAlpha=.65;drawVisitor(x,y,s*.55,0,-side,false,0);paint.restore();
     }
   }
-  drawObstacles(game,project);
+  drawObstacles(game,project,view);
   drawOwner(game,project,now);
   paint.restore();
 
@@ -688,15 +690,26 @@ function drawMirror(video, context, width, height, landmarks, valid, hat = false
     return;
   }
   if (hat) return;
-  const joints = [[11,12],[11,13],[12,14],[11,23],[12,24],[23,24]];
+  const joints = [[2,5],[2,0],[5,0],[0,11],[0,12],[11,12],[11,13],[12,14]];
   context.beginPath();
   for (const [a,b] of joints) {
+    if (!landmarks[a] || !landmarks[b]) continue;
     if (Math.min(landmarks[a].visibility ?? 1,landmarks[b].visibility ?? 1)<.45) continue;
     context.moveTo(...point(a));
     context.lineTo(...point(b));
   }
   context.lineWidth = Math.max(2,width/190);
-  context.strokeStyle = valid ? '#a3f3be' : '#ffd093';
+  context.strokeStyle = '#8af0d0';
+  context.globalAlpha = valid ? 1 : .55;
   context.lineCap = 'round';
   context.stroke();
+  for(const index of [2,5,0,11,12,13,14]){
+    if(!landmarks[index]||(landmarks[index].visibility??1)<.45)continue;
+    const [x,y]=point(index);
+    context.beginPath();
+    context.arc(x,y,Math.max(3,width/145),0,Math.PI*2);
+    context.fillStyle='#ffe06f';
+    context.fill();
+  }
+  context.globalAlpha=1;
 }

@@ -10,16 +10,16 @@ const seenObstacleTypes = new Set();
 const guideCopy = {
   flap: ['↕', '拍翅起飞', 'Flap to take off'],
   lean: ['↔', '侧倾对准游客', 'Lean toward the tourist'],
-  tuck: ['↓', '收肘俯冲', 'Tuck elbows to dive'],
-  grab: ['✋ → ✊', '张手再握拳', 'Open palm, then close'],
-  escape: ['↑', '展开双臂逃跑', 'Spread your wings'],
+  glide: ['↓', '停止拍翅，自然下降', 'Stop flapping to glide down'],
+  grab: ['✋ → ✊', '张开手掌，再握拳抓取', 'Open your palm, then close your fist to grab'],
+  escape: ['↑', '展翅逃跑', 'Spread your wings to escape'],
   crates: ['↑', '拍翅飞越木箱', 'Flap over the crates'],
   sign: ['↔', '侧倾绕过路牌', 'Lean around the sign'],
   highCrates: ['↑', '拍翅飞越高箱堆', 'Flap over tall crates'],
   umbrella: ['↔', '绕开遮阳伞', 'Dodge the umbrella'],
   bunting: ['↔', '避开彩旗绳', 'Dodge the bunting'],
   restaurant: ['↔', '绕过餐厅招牌', 'Dodge the restaurant sign'],
-  cart: ['↔', '绕开移动餐车', 'Dodge the moving cart'],
+  cart: ['↔ / ↑', '换道绕开或拍翅升至高空', 'Change lanes or flap above the moving cart'],
   gull: ['↔', '避让其他海鸥', 'Dodge the rival gull'],
   home: ['⌂', '飞回巢穴', 'Fly back to your nest']
 };
@@ -45,8 +45,11 @@ function guideCandidate(g) {
   if (g.phase === 'launch') return 'flap';
 
   if (g.phase === 'approach') {
-    return isLinedUp(g) ? 'tuck' : 'lean';
+    if(!isLinedUp(g))return 'lean';
+    return mode==='keyboard'||g.grabReady?'grab':'glide';
   }
+
+  if(g.phase==='dive')return 'grab';
 
   if (g.phase === 'grab') {
     const npc = g.npcs?.[g.npcIndex];
@@ -68,7 +71,7 @@ function updateGuide(g, now) {
   if (g.flaps >= 2) learnedActions.add('flap');
   if (g.phase === 'dive') {
     learnedActions.add('lean');
-    learnedActions.add('tuck');
+    learnedActions.add('glide');
   }
   if (g.npcs?.some(n => n.stolen > 0)) {
     learnedActions.add('grab');
@@ -126,8 +129,8 @@ function updateGuide(g, now) {
               ? 'W / SPACE'
               : key === 'grab'
                 ? 'E'
-                : key === 'tuck'
-                  ? 'AUTO DIVE'
+                : key === 'glide'
+                  ? 'GLIDE DOWN'
                   : 'A / D'
           )
         : english ? copy[1] : copy[2];

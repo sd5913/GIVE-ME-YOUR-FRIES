@@ -308,3 +308,74 @@ body:has(#bodyLesson:not([hidden])) #motionStatus{top:auto;bottom:22%;left:50%;t
     animation: none !important;
   }
 }
+
+.calibration-screen,.level-select {
+  position:absolute;z-index:3;inset:0;display:grid;place-items:center;
+  background:#102b42ee;color:var(--paper);overflow:hidden;
+}
+.calibration-screen canvas {
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+}
+.calibration-screen::after {
+  content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0d274735 25%,#0b2138b8);
+}
+.calibration-instructions {
+  position:relative;z-index:1;width:min(520px,88vw);padding:clamp(22px,4vw,42px);
+  text-align:center;border:1px solid #d5fff16b;border-radius:22px;
+  background:#102c3ad9;box-shadow:0 20px 70px #051b2b66;backdrop-filter:blur(7px);
+}
+.calibration-instructions h2,.level-select h2 {margin:0;font-size:clamp(30px,5vw,58px)}
+.calibration-instructions p {margin:7px 0 20px;color:#dcf4eb;font-size:clamp(16px,2.1vw,23px)}
+.calibration-instructions progress {width:100%;height:13px;accent-color:#83f2d5}
+.calibration-instructions span {display:block;margin-top:12px;color:#fff0bf;font-weight:750}
+.level-select {
+  align-content:center;justify-items:center;gap:12px;padding:90px 20px 34px;
+  background:linear-gradient(155deg,#102a43ef,#113c51ef 55%,#102b42f2);
+}
+.level-kicker {color:#ffd578;font-weight:950;letter-spacing:.16em;font-size:clamp(11px,1.3vw,16px)}
+.level-cards {position:relative;width:min(980px,94vw);height:clamp(290px,42vh,440px);margin:clamp(10px,2vh,22px) 0}
+.level-card {
+  position:absolute;top:0;left:50%;width:46%;height:100%;min-width:0;padding:0;overflow:hidden;text-align:left;color:var(--paper);
+  border:2px solid #f6e1ab52;border-radius:20px;background:#16394de8;
+  box-shadow:0 12px 30px #04182766;opacity:.76;scale:.84;transform:translateX(-165%);
+  transition:transform .3s ease,scale .3s ease,opacity .3s ease,border-color .3s ease,box-shadow .3s ease;
+}
+.level-card.selected {
+  opacity:1;scale:1;border-color:var(--yellow);
+  box-shadow:0 0 0 3px #ffd57832,0 18px 45px #041827a8;
+}
+#levelSelect[data-selected="1"] #levelCard1 {transform:translateX(-50%);z-index:2}
+#levelSelect[data-selected="1"] #levelCard2 {transform:translateX(65%)}
+#levelSelect[data-selected="2"] #levelCard1 {transform:translateX(-165%)}
+#levelSelect[data-selected="2"] #levelCard2 {transform:translateX(-50%);z-index:2}
+.card-art {
+  position:relative;display:grid;place-items:center;height:clamp(130px,24vh,240px);overflow:hidden;
+  background:linear-gradient(180deg,#84c8d6 0 44%,#62b6b5 45% 58%,#286b82 59% 100%);
+}
+.card-art::before {
+  content:"";position:absolute;left:-10%;right:-10%;bottom:22%;height:35%;
+  background:linear-gradient(165deg,transparent 0 22%,#f0ca91 23% 29%,transparent 30% 54%,#eac58c 55% 61%,transparent 62%);
+}
+.card-art-one {background:linear-gradient(180deg,#92cbd1 0 42%,#efd19a 43% 51%,#52a9b0 52% 100%)}
+.card-art-two {background:linear-gradient(180deg,#5ba6b7 0 40%,#dbb477 41% 49%,#28778a 50% 100%)}
+.card-sun {position:absolute;width:52px;height:52px;right:13%;top:16%;border-radius:50%;background:#ffe5a0;box-shadow:0 0 35px #ffe5a077}
+.card-art canvas {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.76}
+.card-art-two canvas {filter:saturate(.78) sepia(.12)}
+.card-fries {position:absolute;right:8%;bottom:8%;color:#fff0a8;font-size:clamp(14px,2.2vw,24px);font-weight:1000;letter-spacing:.12em;text-shadow:0 2px 4px #102c3a}
+.card-copy {display:grid;gap:5px;padding:clamp(13px,2vw,23px)}
+.card-copy b {color:#ffd578;font-size:12px;letter-spacing:.14em}
+.card-copy strong {font-size:clamp(18px,2.5vw,30px)}
+.card-copy span {font-size:clamp(12px,1.4vw,16px);color:#c6dce0}
+.level-hint {color:#d5e7e6;font-weight:700;text-align:center}
+.level-countdown {color:var(--yellow);font-weight:1000;font-size:clamp(28px,5vw,56px);font-variant-numeric:tabular-nums}
+#stage[data-phase="calibrating"] .chrome,#stage[data-phase="levelSelect"] .chrome {z-index:5}
+@media(max-width:620px) {
+  .level-cards {height:clamp(260px,43vh,370px)}
+  .level-card {width:48%}
+  .card-copy {padding:12px 10px}
+  .card-copy span {line-height:1.35}
+  .level-card {border-radius:15px}
+}
+@media(prefers-reduced-motion:reduce) {
+  .level-card {transition:none}
+}
