@@ -6,7 +6,7 @@
 
 ## English
 
-**First-person full-body demo · Updated 19 November 2026.** Flap to fly and escape, steal fries from a visitor who gradually turns red, then fly over crates and steer around signs on the longer pier. Body and keyboard modes share the same map. [Open the demo source](demos/gull-flight/index.html) · [Controls and local setup](docs/full-body-big-screen-plan.md) · [Previous first-person demo](demos/archive/gull-flight-before-runner-2026-11-19/index.html). Download the whole repository and serve it locally to play. The original game below is preserved.
+**First-person full-body demo v20 · Updated 26 November 2026.** Flap to fly and escape, steal fries from a visitor who gradually turns red, then fly over crates and steer around signs on the longer pier. Body and keyboard modes share the same map. [Open the demo source](demos/gull-flight/index.html) · [Controls and local setup](docs/full-body-big-screen-plan.md) · [Previous first-person demo](demos/archive/gull-flight-before-runner-2026-11-19/index.html). Download the whole repository and serve it locally to play. The original game below is preserved.
 
 Fly a seagull around the harbor, steal fries with its feet, and deliver them to your nest. Play a solo challenge or compete with a friend on the same map.
 
@@ -67,7 +67,7 @@ Click **再来一局** on the final screen to play again. During a match, **重�
 
 ## 简体中文
 
-**第一人称全身体感 Demo · 更新于 2026 年 11 月 19 日。** 拍翅起飞、抢走游客的薯条，在游客逐渐变红发怒时向上逃跑，沿加长栈道飞越货箱、绕开招牌回巢。键盘与体感共用同一地图。[最新 Demo 源码](demos/gull-flight/index.html) · [动作说明与本地启动](docs/full-body-big-screen-plan.md) · [修改前第一人称副本](demos/archive/gull-flight-before-runner-2026-11-19/index.html)。下载整个仓库并在本地启动后游玩。下方原版游戏继续保留。
+**第一人称全身体感 Demo v20 · 更新于 2026 年 11 月 26 日。** 拍翅起飞、抢走游客的薯条，在游客逐渐变红发怒时向上逃跑，沿加长栈道飞越货箱、绕开招牌回巢。键盘与体感共用同一地图。[最新 Demo 源码](demos/gull-flight/index.html) · [动作说明与本地启动](docs/full-body-big-screen-plan.md) · [修改前第一人称副本](demos/archive/gull-flight-before-runner-2026-11-19/index.html)。下载整个仓库并在本地启动后游玩。下方原版游戏继续保留。
 
 **当前游戏版本 v2.4** · **更新时间 2026 年 11 月 19 日（UTC+8）**
 

@@ -19,6 +19,9 @@ const ATTACK_CHARGE = 2.3;
 const MAX_FRIES = 3;
 const TRACKING_GRACE = 320;
 const CALIBRATION_MS = 1000;
+const BODY_INPUT = Object.freeze({tuckEnter:1.32,tuckExit:1.46,tuckMs:110,
+  escapeSpan:1.5,escapeOut:.60,escapeMs:100,grabGuardMs:80,
+  handGraceMs:900,handConfirmMs:33,flapSpan:1.25,flapTravel:.16,flapCooldownMs:200});
 const VISION_ROOTS = [
   'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21',
   'https://unpkg.com/@mediapipe/tasks-vision@0.10.21'
@@ -27,18 +30,38 @@ const POSE_MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmar
 const HAND_MODEL = 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task';
 
 let game = {phase:'setup',round:1,score:0,target:-1,blocked:-1,x:0,z:50};
-const view = {x:0,z:50,height:140,pitch:0,bank:0,lift:0,wings:1,speed:0};
+const view = {x:0,z:50,height:140,reach:0,pitch:0,bank:0,lift:0,wings:1,speed:0};
 let mode = 'keyboard', inputLift = 0, inputSpread = 1, keyboardFlap = 0;
 let audio, muted = false, heyBuffer;
 let session = 0, cameraRequest = 0, opening = false, stream = null, tracker = null, handTracker = null, modelTask = null;
 let landmarks = null, latestPose = null, neutral = null, calibration = null, motion = makeMotion();
 let lastVideoTime = -1, lastPoseAt = -Infinity, lastValidAt = -Infinity;
 let trackingPaused = false, lastTick = performance.now();
+let bodyLesson=null;
+const LESSON_STEPS=[
+  ['🪽 ↕ 🪽','拍动双臂两次','双肩和手肘保持入镜，上下拍动；下方会显示次数。'],
+  ['↙ 🧍 ↘','侧倾对准薯条','向薯条盒侧倾，盒边亮起后就对准了。'],
+  ['🪽 → 🧍 ← 🪽','收翅俯冲','两侧手肘收向身体，短暂保持；不用先展翅。'],
+  ['🖐️ → ✊','张手再握拳','单手伸到胸前，张开五指后用同一只手握拳。'],
+  ['🧍 → 🪽','展开双臂离开','抓到薯条后直接展开双臂，保持片刻就能飞走。'],
+  ['🏡','准备正式出发','目标：把薯条带回巢。练习所得不会计入正式得分。']
+];
+function showBodyLesson(){
+  $('bodyLesson').hidden=!bodyLesson;
+  if(!bodyLesson)return;
+  const [demo,title,detail]=LESSON_STEPS[bodyLesson.step];
+  $('lessonProgress').textContent=bodyLesson.step===5 ? tr('练习完成 · ')+Math.ceil(bodyLesson.countdown)+tr(' 秒后开始') : tr('体感练习 ')+(bodyLesson.step+1)+tr(' / 5 · 无攻击、无倒计时');
+  $('lessonDemo').textContent=demo;$('lessonTitle').textContent=tr(title);$('lessonDetail').textContent=tr(detail);
+}
+function startBodyLesson(){beginRound('body',true);bodyLesson={step:0,countdown:3};showBodyLesson();}
+function lessonStep(step){if(bodyLesson){bodyLesson.step=step;showBodyLesson();}}
 
 function makeMotion() {
   return {lean:0, leanAt:null, raised:false, open:false, tuckAt:null,
     escapeAt:null, hand:null, activeHand:null, handStatus:'', candidate:null, candidateAt:0,
-    handSeenAt:-Infinity, handSampleAt:-Infinity, handCrop:null};
+    handSeenAt:-Infinity, handSampleAt:-Infinity, handCrop:null,
+    escapeArmed:false,lastGrabAt:-Infinity,poseAt:null,tuckStatus:'',
+    flapPeak:null,flapLow:null,lastFlapAt:-Infinity};
 }
 
 function cue(title,detail = '') {
@@ -47,6 +70,9 @@ function cue(title,detail = '') {
 }
 
 function setPhase(phase) {
+  if (phase !== 'grab' && phase !== 'chase') $('grabImpact').hidden = true;
+  motion.tuckAt=null; motion.escapeAt=null; motion.escapeArmed=false;
+  motion.raised=false; motion.candidate=null;
   game.phase = phase;
   game.elapsed = 0;
   stage.dataset.phase = phase;
@@ -137,13 +163,27 @@ function updateHUD() {
   $('round').textContent = game.round;
   $('score').textContent = game.score;
   $('load').hidden = !game.carry;
-  $('carry').textContent = game.carry;
+  const count = String(game.carry);
+  if ($('carry').textContent !== count) {
+    $('carry').textContent = count;
+    $('load').dataset.count = count;
+  }
   const notice = $('reaction');
   const call = game.feedback || (game.attack && !game.attack.resolved ? 'HEY!!!' : '');
   if (notice.textContent !== call) notice.textContent = call;
   notice.hidden = !call;
   notice.classList.toggle('success',call === 'TOO SLOW!');
-  $('timePanel').hidden = game.phase !== 'chase';
+  const warning = game.attack && !game.attack.resolved && ['grab','chase'].includes(game.phase);
+  $('attackClock').hidden = $('dangerGlow').hidden = !warning;
+  if (warning) {
+    const duration = ATTACK_NOTICE + ATTACK_CHARGE;
+    const progress = limit(game.attack.elapsed / duration, 0, 1);
+    const pulse = (1 + Math.cos(2*Math.PI*(2*progress + 2*progress*progress))) / 2;
+    $('dangerGlow').style.opacity = .36 + .20*progress + .40*pulse;
+    $('attackSeconds').textContent = (Math.ceil((1-progress)*duration*10)/10).toFixed(1)+' s';
+    $('attackFill').style.transform = 'scaleX('+(1-progress)+')';
+  }
+  $('timePanel').hidden = game.phase !== 'chase' || Boolean(warning);
   if (game.phase === 'chase') {
     $('timeText').textContent = Math.max(0,game.remaining).toFixed(1);
     $('timePanel').classList.toggle('urgent',game.remaining<2);
@@ -151,6 +191,7 @@ function updateHUD() {
 }
 
 function beginRound(newMode, restart = false) {
+  bodyLesson=null;showBodyLesson();
   mode = newMode;
   if (mode === 'keyboard') closeCamera();
   startAudio();
@@ -161,7 +202,7 @@ function beginRound(newMode, restart = false) {
     clawSnap:0,climb:0,grabPending:0,slow:0,flash:0,
     obstacles:[{z:1450,kind:'crates',lane:0},{z:2200,kind:'sign',lane:target},
       {z:2900,kind:'crates',lane:0}]};
-  Object.assign(view,{x:0,z:50,height:140,pitch:0,bank:0,lift:0,wings:1,speed:0});
+  Object.assign(view,{x:0,z:50,height:140,reach:0,pitch:0,bank:0,lift:0,wings:1,speed:0});
   motion = makeMotion();
   inputLift = keyboardFlap = 0;
   inputSpread = 1;
@@ -173,8 +214,9 @@ function beginRound(newMode, restart = false) {
 }
 
 function returnToSetup() {
+  bodyLesson=null;showBodyLesson();
   game = {round:1,score:0,x:0,target:-1,blocked:-1,z:50,elapsed:0,carry:0,flash:0};
-  Object.assign(view,{x:0,z:50,height:140,pitch:0,bank:0,lift:0,wings:1,speed:0});
+  Object.assign(view,{x:0,z:50,height:140,reach:0,pitch:0,bank:0,lift:0,wings:1,speed:0});
   calibration = null;
   trackingPaused = false;
   setPhase('setup');
@@ -183,42 +225,42 @@ function returnToSetup() {
 
 function refreshCue() {
   const key = mode === 'keyboard';
-  const direction = side => side < 0 ? '左' : '右';
+  const direction = side => side < 0 ? tr('左') : tr('右');
   const sideKey = side => side < 0 ? 'A / ←' : 'D / →';
   if (game.phase === 'launch') {
-    cue('拍两下翅膀', key ? '按 W 或空格 · '+game.flaps+'/2' : '张开双臂，上下扑动 · '+game.flaps+'/2');
+    cue(tr('拍两下翅膀'), key ? tr('按 W 或空格 · ')+game.flaps+'/2' : tr('张开双臂，上下扑动 · ')+game.flaps+'/2');
   } else if (game.phase === 'approach') {
     const turn = Math.sign(routeX(game.target)-game.x);
     if (!isLinedUp(game)) {
-      cue('向'+direction(turn)+'倾斜',key ? sideKey(turn)+' · 飞向薯条盒' : '上半身缓慢朝薯条倾斜');
+      cue(tr('向')+direction(turn)+tr('倾斜'),key ? sideKey(turn)+tr(' · 飞向薯条盒') : tr('上半身缓慢朝薯条倾斜'));
     } else if (!game.ready) {
-      cue('看准薯条', '等盒子亮起金圈');
+      cue(tr('看准薯条'), tr('等薯条盒边缘亮起'));
     } else {
-      cue(key ? '自动俯冲' : '收翅俯冲',key ? '对准即可降落，不用按键' : '把两侧手肘收向身体');
+      cue(key ? tr('自动俯冲') : tr('收翅俯冲'),key ? tr('对准即可降落，不用按键') : tr('把两侧手肘收向身体'));
     }
   } else if (game.phase === 'dive') {
-    cue('俯冲！');
+    cue(tr('俯冲！'));
   } else if (game.phase === 'grab') {
-    const escape = key ? '空格 / W · 向上飞走，躲开游客' : '双臂展开，向上逃跑';
-    if (game.carry >= MAX_FRIES) cue('展翅逃跑',escape);
-    else if (game.clawOpen) cue(key ? '鸟爪抓取中' : '握拳抓薯条',key ? '每按一次 E 抓一根' : motion.handStatus || '握紧刚才伸出的那只手');
-    else cue(key ? (game.carry ? '再抢一根，还是逃？' : '抢薯条！') : game.carry ? '再张手，或飞走' : '伸手张开五指',key ? 'E 抓一根 · '+escape
-      : game.carry ? escape : motion.handStatus || '把一只手伸到胸前，掌心朝向摄像头');
+    const escape = key ? tr('空格 / W · 向上飞走，躲开游客') : tr('双臂展开，向上逃跑');
+    if (game.carry >= MAX_FRIES) cue(tr('展翅逃跑'),escape);
+    else if (game.clawOpen) cue(key ? tr('鸟爪抓取中') : tr('握拳抓薯条'),key ? tr('每按一次 E 抓一根') : motion.handStatus || tr('握紧刚才伸出的那只手'));
+    else cue(key ? (game.carry ? tr('再抢一根，还是逃？') : tr('抢薯条！')) : game.carry ? tr('再张手，或飞走') : tr('伸手张开五指'),key ? tr('E 抓一根 · ')+escape
+      : game.carry ? escape : motion.handStatus || tr('把一只手伸到胸前，掌心朝向摄像头'));
   } else if (game.phase === 'chase') {
     if (game.attack && !game.attack.resolved) {
-      cue('向上逃跑！',key ? '空格 / W · 拍翅升空' : '展开双臂，拍翅升空');
+      cue(tr('向上逃跑！'),key ? tr('空格 / W · 拍翅升空') : tr('展开双臂，拍翅升空'));
     } else {
       const obstacle = game.obstacles.find(item => !item.passed && item.z>game.z-40);
       if (obstacle && obstacle.z-game.z<650) {
-        cue(obstacle.kind==='crates' ? '拍翅！飞过货箱' : '避开码头招牌', key
-          ? obstacle.kind==='crates' ? '空格 / W · 向上飞' : (obstacle.lane>0 ? 'A / ← · 飞到左边' : 'D / → · 飞到右边')
-          : obstacle.kind==='crates' ? '拍动双臂，飞越货箱' : '身体侧倾，绕开招牌');
-      } else cue('沿栈道飞回巢穴',key ? '空格 / W 拍翅 · A / D 换边' : '拍翅飞翔，侧倾绕开障碍');
+        cue(obstacle.kind==='crates' ? tr('拍翅！飞过货箱') : tr('避开码头招牌'), key
+          ? obstacle.kind==='crates' ? tr('空格 / W · 向上飞') : (obstacle.lane>0 ? tr('A / ← · 飞到左边') : tr('D / → · 飞到右边'))
+          : obstacle.kind==='crates' ? tr('拍动双臂，飞越货箱') : tr('身体侧倾，绕开招牌'));
+      } else cue(tr('沿栈道飞回巢穴'),key ? tr('空格 / W 拍翅 · A / D 换边') : tr('拍翅飞翔，侧倾绕开障碍'));
     }
   } else if (game.phase === 'hit') {
-    cue('薯条掉了！');
+    cue(tr('薯条掉了！'));
   } else if (game.phase === 'home') {
-    cue('落巢！', '+'+game.deposited+' 根薯条');
+    cue(tr('落巢！'), '+'+game.deposited+tr(' 根薯条'));
   }
 }
 
@@ -254,6 +296,7 @@ function flap() {
 }
 
 function tuck() {
+  if(bodyLesson && bodyLesson.step!==2)return;
   if (!canAct() || game.phase !== 'approach' || !game.ready || !isLinedUp(game)) return;
   setPhase('dive');
   game.diveFrom = game.z;
@@ -267,6 +310,7 @@ function beginGrab() {
   motion.handStatus = '';
   motion.handCrop = null;
   setPhase('grab');
+  lessonStep(3);
   refreshCue();
 }
 
@@ -283,14 +327,34 @@ function closeClaw(hand) {
   game.clawOpen = false;
   game.clawSnap = .28;
   game.carry++;
+  if(bodyLesson)lessonStep(4);
+  motion.lastGrabAt=performance.now();
+  motion.escapeAt=null;
+  motion.escapeArmed=true;
   tone([[740,0,.085],[1050,.06,.11]]);
-  if (game.carry === 2) {
+  if (game.carry === 2 && !bodyLesson) {
     game.attack = {elapsed:0,resolved:false};
     playHey();
   }
   refreshCue();
   updateHUD();
+  playGrabImpact();
 }
+
+function playGrabImpact() {
+  const impact = $('grabImpact');
+  const counter = $('load');
+  counter.classList.remove('carry-hit');
+  impact.hidden = true;
+  // Flush once per successful grab so consecutive pickups replay the impact.
+  void counter.offsetWidth;
+  impact.hidden = false;
+  counter.classList.add('carry-hit');
+}
+
+$('grabImpact').addEventListener('animationend', event => {
+  if (event.target === event.currentTarget) event.currentTarget.hidden = true;
+});
 
 function keyboardGrab() {
   if (game.phase!=='grab' || game.grabPending || game.carry>=MAX_FRIES) return;
@@ -298,8 +362,10 @@ function keyboardGrab() {
   game.grabPending = .18;
 }
 
-function beginChase() {
+function beginChase(confirmedSpread=false) {
   if (game.phase !== 'grab' || !game.carry) return;
+  if (mode==='body' && !confirmedSpread && (game.clawOpen || motion.candidate)) return;
+  motion.candidate=null;
   game.z = TRAY_Z+25;
   game.clawOpen = false;
   game.grabPending = 0;
@@ -309,6 +375,7 @@ function beginChase() {
   game.flash = .48;
   game.flashColor = '#ffda79';
   setPhase('chase');
+  lessonStep(5);
   tone([[540,0,.13],[780,.08,.15]]);
   refreshCue();
 }
@@ -350,10 +417,10 @@ function arrive() {
 
 function showResult(success, reason = '') {
   game.carry = 0;
-  $('resultTitle').textContent = success ? (game.deposited ? '偷到了！' : '空爪回巢') : reason;
+  $('resultTitle').textContent = success ? (game.deposited ? tr('偷到了！') : tr('空爪回巢')) : reason;
   $('resultText').textContent = success
-    ? '这趟带回 '+game.deposited+' 根。巢里共有 '+game.score+' 根薯条。'
-    : '这趟的薯条掉了。巢里还有 '+game.score+' 根。';
+    ? tr('这趟带回 ')+game.deposited+tr(' 根。巢里共有 ')+game.score+tr(' 根薯条。')
+    : tr('这趟的薯条掉了。巢里还有 ')+game.score+tr(' 根。');
   if (!success) tone([[175,0,.28,'sawtooth'],[120,.11,.24,'triangle']]);
   setPhase('result');
   updateHUD();
@@ -361,6 +428,15 @@ function showResult(success, reason = '') {
 }
 
 function updateFlight(dt) {
+  if(bodyLesson?.step===5){
+    bodyLesson.countdown=Math.max(0,bodyLesson.countdown-dt);showBodyLesson();
+    if(!bodyLesson.countdown)beginRound('body',true);
+    return;
+  }
+  if(bodyLesson && game.phase==='approach'){
+    if(bodyLesson.step===0)lessonStep(1);
+    if(bodyLesson.step===1 && isLinedUp(game))lessonStep(2);
+  }
   game.elapsed += dt;
   game.flash = Math.max(0,game.flash-dt*1.9);
   game.clawSnap = Math.max(0,game.clawSnap-dt);
@@ -410,11 +486,11 @@ function updateFlight(dt) {
         game.flash = .55;
         game.flashColor = '#f5655c';
         game.slow = .65;
-        game.feedback = '擦碰！掉了 1 根';
+        game.feedback = tr('擦碰！掉了 1 根');
         game.feedbackTime = 1.25;
         tone([[140,0,.18,'sawtooth']]);
       } else {
-        game.feedback = '漂亮！';
+        game.feedback = tr('漂亮！');
         game.feedbackTime = .75;
         tone([[800,0,.09],[1050,.08,.12]]);
       }
@@ -422,7 +498,7 @@ function updateFlight(dt) {
     if (home-game.z<200) game.x = smooth(game.x,routeX(-game.blocked),dt,3.5);
     refreshCue();
     if (game.remaining <= 0) {
-      showResult(false,'没赶回巢');
+      showResult(false,tr('没赶回巢'));
       return;
     }
     if (game.z >= home) arrive();
@@ -441,6 +517,8 @@ function updateView(dt) {
   const low = dive || game.phase === 'grab' || game.phase === 'hit';
   const chase = game.phase === 'chase';
   const home = game.phase === 'home';
+  const reach=game.phase==='grab' ? (game.clawOpen ? 1 : .86) : game.carry || game.phase==='hit' ? .57 : 0;
+  view.reach=smooth(view.reach,reach,dt,9);
   const targetX = game.x;
   const steering = targetX-view.x;
   view.x = smooth(view.x,targetX,dt,11);
@@ -460,19 +538,22 @@ function readPose(points, aspect) {
     return joint && (joint.visibility ?? 1) > .49 && joint.x > .01 && joint.x < .99 &&
       joint.y > .02 && joint.y < .98;
   };
-  if (!points || ![11,12,23,24].every(visible)) return null;
+  if (!points || ![11,12].every(visible)) return null;
   const [left,right,hipA,hipB] = [11,12,23,24].map(i => points[i]);
-  const shoulderY = (left.y+right.y)/2, hipY = (hipA.y+hipB.y)/2;
-  const torso = hipY-shoulderY;
   const shoulders = Math.abs(left.x-right.x)*aspect;
+  const shoulderY = (left.y+right.y)/2;
+  const hipsVisible=visible(23) && visible(24);
+  // Shoulder width gives a scale when the waist is outside the camera frame.
+  const torso=hipsVisible ? (hipA.y+hipB.y)/2-shoulderY : shoulders*.95;
+  const hipY=shoulderY+torso;
   if (torso < .077 || shoulders < .055) return null;
-  const shoulderX = (left.x+right.x)/2, hipX = (hipA.x+hipB.x)/2;
+  const shoulderX = (left.x+right.x)/2, hipX = hipsVisible ? (hipA.x+hipB.x)/2 : shoulderX;
+  const orientation = Math.sign(left.x-right.x);
   const pose = {x:(1-hipX*.76-shoulderX*.24)*aspect, torso,
-    lean:(hipX-shoulderX)*aspect/torso, shoulderX, shoulderY, hipY, span:null,
+    lean:(right.y-left.y)*orientation/shoulders, shoulderX, shoulderY, hipY, span:null,
     wrists:[15,16].filter(visible).map(arm=>({arm,x:points[arm].x,y:points[arm].y}))};
   if (!visible(13) || !visible(14)) return pose;
   const elbowA = points[13], elbowB = points[14];
-  const orientation = Math.sign(left.x-right.x);
   pose.span = Math.abs(elbowA.x-elbowB.x)*aspect/shoulders;
   pose.lift = (shoulderY-(elbowA.y+elbowB.y)*.5)/torso;
   pose.bothOut = Math.min((elbowA.x-shoulderX)*orientation,(shoulderX-elbowB.x)*orientation)*aspect/shoulders;
@@ -480,6 +561,12 @@ function readPose(points, aspect) {
 }
 
 function trackMotion(pose, now) {
+  if (motion.poseAt!==null && now-motion.poseAt>120) {
+    motion.tuckAt=null; motion.escapeAt=null; motion.escapeArmed=false;
+    motion.raised=false;
+    motion.flapPeak=motion.flapLow=null;
+  }
+  motion.poseAt=now;
   const lean = pose.lean-neutral.lean;
   const magnitude = Math.abs(lean);
   const target = Math.sign(lean)*limit((magnitude-LEAN_DEADZONE)/.22,0,1);
@@ -491,6 +578,9 @@ function trackMotion(pose, now) {
     motion.escapeAt = null;
     motion.tuckAt = null;
     motion.raised = false;
+    motion.flapPeak=motion.flapLow=null;
+    motion.escapeArmed=false;
+    if (game.phase==='approach' && game.ready && isLinedUp(game)) cue(tr('收翅俯冲'),tr('请让两侧手肘保持入镜'));
     return;
   }
   inputSpread = limit((pose.span-1.06)/.7,0,1);
@@ -498,32 +588,46 @@ function trackMotion(pose, now) {
 
   const spread = pose.bothOut>.72;
   if (game.phase==='grab') {
-    if (game.carry && spread && pose.span>1.65) {
+    // Successful grab arms escape. Only a bilateral spread can leave GRAB;
+    // an open palm seen during that movement must not lock the player here.
+    if (now-motion.lastGrabAt<BODY_INPUT.grabGuardMs) {motion.escapeAt=null;return;}
+    if (pose.span<BODY_INPUT.tuckExit) motion.escapeArmed=true;
+    if (game.carry && motion.escapeArmed && pose.bothOut>BODY_INPUT.escapeOut && pose.span>BODY_INPUT.escapeSpan) {
       motion.escapeAt ??= now;
-      if (now-motion.escapeAt>=110) beginChase();
+      if (now-motion.escapeAt>=BODY_INPUT.escapeMs) beginChase(true);
     } else {
       motion.escapeAt = null;
     }
     return;
   }
-  if (spread) {
-    motion.open = true;
-    motion.tuckAt = null;
-  } else if (motion.open && pose.span<1.27) {
+  const canTuck=game.phase==='approach' && game.ready && isLinedUp(game);
+  if (canTuck && pose.span<BODY_INPUT.tuckEnter) {
     motion.tuckAt ??= now;
-    if (now-motion.tuckAt>=95) {
-      motion.open = false;
+    cue(tr('收翅俯冲'),tr('已看到收翅，确认中…'));
+    if (now-motion.tuckAt>=BODY_INPUT.tuckMs) {
       motion.raised = false;
       tuck();
     }
-  } else {
+  } else if (!canTuck || pose.span>BODY_INPUT.tuckExit) {
     motion.tuckAt = null;
   }
 
-  if (pose.span>1.54 && pose.lift>-.14) motion.raised = true;
-  if (motion.raised && pose.lift<-.36) {
-    motion.raised = false;
-    if (pose.span>1.44) flap();
+  if (['launch','chase'].includes(game.phase) && pose.span>BODY_INPUT.flapSpan) {
+    motion.flapPeak ??= pose.lift;
+    motion.flapLow ??= pose.lift;
+    if (!motion.raised) {
+      motion.flapLow=Math.min(motion.flapLow,pose.lift);
+      if (pose.lift-motion.flapLow>=BODY_INPUT.flapTravel || pose.lift>-.14) {
+        motion.raised=true; motion.flapPeak=pose.lift;
+      }
+    } else {
+      motion.flapPeak=Math.max(motion.flapPeak,pose.lift);
+      if (motion.flapPeak-pose.lift>=BODY_INPUT.flapTravel && now-motion.lastFlapAt>=BODY_INPUT.flapCooldownMs) {
+        motion.raised=false; motion.flapLow=pose.lift;motion.lastFlapAt=now;flap();
+      }
+    }
+  } else {
+    motion.raised=false;motion.flapPeak=motion.flapLow=null;
   }
 }
 
@@ -547,6 +651,7 @@ function classifyHand(points, aspect, category) {
 }
 
 function trackHand(result, pose, aspect, crop, now) {
+  if (game.phase!=='grab') return;
   const distance = (a,b) => Math.hypot((a.x-b.x)*aspect,a.y-b.y);
   const fullFrame = point => ({x:crop.x+point.x*crop.width,y:crop.y+point.y*crop.height});
   const sameHand = (a,b) => a.arm && b.arm ? a.arm===b.arm : Boolean(a.side && a.side===b.side);
@@ -572,13 +677,14 @@ function trackHand(result, pose, aspect, crop, now) {
     ? hands.find(hand=>sameHand(hand,motion.activeHand))
     : hands.find(hand=>hand.inFront && hand.shape==='Open_Palm' && (hand.arm || hand.side));
   if (hand) motion.handSeenAt = now;
-  if (!hand && game.clawOpen && now-motion.handSeenAt>430) {
+  if (!hand && game.clawOpen && now-motion.handSeenAt>BODY_INPUT.handGraceMs) {
     game.clawOpen = false;
+    motion.activeHand=null;
   }
   const status = game.clawOpen
-    ? (hand ? '已识别张手 · 握紧同一只手' : '请把刚才那只手放回镜头里')
-    : hands.some(hand=>hand.inFront) ? '已看到手 · 请张开五指' :
-      hands.length ? '已看到手 · 请把手抬到胸口前' : '还没看到手 · 掌心朝向摄像头';
+    ? (hand ? tr('已识别张手 · 握紧同一只手') : tr('请把刚才那只手放回镜头里'))
+    : hands.some(hand=>hand.inFront) ? tr('已看到手 · 请张开五指') :
+      hands.length ? tr('已看到手 · 请把手抬到胸口前') : tr('还没看到手 · 掌心朝向摄像头');
   if (motion.handStatus!==status) {
     motion.handStatus = status;
     refreshCue();
@@ -593,7 +699,7 @@ function trackHand(result, pose, aspect, crop, now) {
     motion.candidateAt = now;
     return;
   }
-  if (now-motion.candidateAt<33) return;
+  if (now-motion.candidateAt<BODY_INPUT.handConfirmMs) return;
   motion.candidate = null;
   motion.handStatus = '';
   if (game.clawOpen) closeClaw(motion.hand);
@@ -625,7 +731,7 @@ function detectHand(pose, aspect, now) {
 
 function recordCalibration(pose, now) {
   const bar = $('calibrationProgress');
-  if (!pose || (calibration.count && Math.abs(pose.x-calibration.x/calibration.count)>pose.torso*.24)) {
+  if (!pose || pose.span===null || (calibration.count && Math.abs(pose.x-calibration.x/calibration.count)>pose.torso*.24)) {
     calibration = {started:null,count:0,x:0,lean:0};
     bar.value = 0;
     return;
@@ -638,7 +744,7 @@ function recordCalibration(pose, now) {
   if (bar.value < 1) return;
   neutral = {lean:calibration.lean/calibration.count};
   calibration = null;
-  cameraStatus('校准完成。开始体感后，张开双臂拍两下起飞。');
+  cameraStatus(tr('校准完成。开始体感后，张开双臂拍两下起飞。'));
   updateCameraButtons();
 }
 
@@ -668,13 +774,17 @@ function updatePose(now) {
     tracker = handTracker = modelTask = null;
     closeCamera();
     returnToSetup();
-    cameraStatus('姿态识别中断。请重新开启摄像头。',true);
+    cameraStatus(tr('姿态识别中断。请重新开启摄像头。'),true);
     return;
   }
   latestPose = readPose(landmarks,aspect);
   if (game.phase==='setup' && calibration) recordCalibration(latestPose,now);
   if (!latestPose) {
     motion.tuckAt = null;
+    motion.escapeAt=null;
+    motion.escapeArmed=false;
+    motion.raised=false;
+    motion.candidate=null;
     return;
   }
   lastValidAt = now;
@@ -686,7 +796,6 @@ function updatePose(now) {
       game.lean = 0;
       refreshCue();
     }
-    trackMotion(latestPose,now);
     if (game.phase==='grab' && game.carry<MAX_FRIES && now-motion.handSampleAt>=40) {
       motion.handSampleAt = now;
       try {
@@ -698,9 +807,10 @@ function updatePose(now) {
         tracker = handTracker = modelTask = null;
         closeCamera();
         returnToSetup();
-        cameraStatus('手势识别中断。请重新开启摄像头。',true);
+        cameraStatus(tr('手势识别中断。请重新开启摄像头。'),true);
       }
     }
+    trackMotion(latestPose,now);
   }
 }
 
@@ -711,9 +821,9 @@ function cameraStatus(message,error = false) {
 
 function updateCameraButtons() {
   $('cameraButton').disabled = opening;
-  $('cameraButton').textContent = stream ? '关闭摄像头' : '开启摄像头';
+  $('cameraButton').textContent = stream ? tr('关闭摄像头') : tr('开启摄像头');
   $('calibrate').disabled = !stream || !tracker || Boolean(calibration) || opening;
-  $('bodyStart').disabled = !stream || !tracker || !handTracker || !neutral || opening || Boolean(calibration);
+  $('bodyStart').disabled = !stream || !tracker || !handTracker || !neutral || !latestPose || latestPose.span===null || performance.now()-lastValidAt>TRACKING_GRACE || opening || Boolean(calibration);
   $('calibrationProgress').hidden = !calibration;
   $('previewEmpty').hidden = Boolean(stream);
   preview.hidden = !stream;
@@ -737,8 +847,8 @@ async function listCameras(selected = stream?.getVideoTracks()[0]?.getSettings()
   const request = ++cameraRequest;
   const inputs = (await navigator.mediaDevices.enumerateDevices()).filter(input => input.kind==='videoinput' && input.deviceId);
   if (request !== cameraRequest) return;
-  device.replaceChildren(new Option('系统默认摄像头',''));
-  inputs.forEach((input,index) => device.add(new Option(input.label || '视频输入 '+(index+1),input.deviceId)));
+  device.replaceChildren(new Option(tr('系统默认摄像头'),''));
+  inputs.forEach((input,index) => device.add(new Option(input.label || tr('视频输入 ')+(index+1),input.deviceId)));
   if (inputs.some(input => input.deviceId===selected)) device.value = selected;
 }
 
@@ -793,7 +903,7 @@ async function getTracker() {
 
 async function openCamera() {
   if (!navigator.mediaDevices?.getUserMedia) {
-    cameraStatus('体感请用 Chrome 打开本地试玩网址，再开启摄像头。',true);
+    cameraStatus(tr('体感请用 Chrome 打开本地试玩网址，再开启摄像头。'),true);
     return;
   }
   const selected = device.value;
@@ -801,7 +911,7 @@ async function openCamera() {
   const ticket = session;
   opening = true;
   updateCameraButtons();
-  cameraStatus('等待相机权限…');
+  cameraStatus(tr('等待相机权限…'));
   try {
     const input = selected ? {deviceId:{exact:selected}} : {};
     let received;
@@ -825,7 +935,7 @@ async function openCamera() {
       await Promise.race([
         video.play(),
         new Promise((_,reject) => {
-          playbackTimeout = setTimeout(() => reject(new DOMException('相机未输出视频','NotReadableError')),8000);
+          playbackTimeout = setTimeout(() => reject(new DOMException(tr('相机未输出视频'),'NotReadableError')),8000);
         })
       ]);
     } finally {
@@ -836,26 +946,26 @@ async function openCamera() {
       if (stream !== received) return;
       closeCamera();
       returnToSetup();
-      cameraStatus('相机已断开。重新连接后点击开启摄像头。',true);
+      cameraStatus(tr('相机已断开。重新连接后点击开启摄像头。'),true);
     });
     listCameras().catch(() => {});
     opening = false;
     updateCameraButtons();
-    cameraStatus('正在加载身体和手势识别…');
+    cameraStatus(tr('正在加载身体和手势识别…'));
     const model = await getTracker();
     if (session!==ticket) return;
-    cameraStatus(model ? (track.label || '摄像头已连接')+' · 站在画面中间，让肩膀、手肘和髋部入镜。'
-      : '体感识别加载失败。检查网络后重新开启相机。',!model);
+    cameraStatus(model ? (track.label || tr('摄像头已连接'))+tr(' · 调整镜头，让双肩和两侧手肘入镜，再校准；不必拍到髋部。')
+      : tr('体感识别加载失败。检查网络后重新开启相机。'),!model);
     updateCameraButtons();
   } catch (error) {
     if (session!==ticket) return;
     closeCamera();
     const hints = {
-      NotAllowedError:'请允许 Chrome 访问摄像头，再点开启。',
-      NotReadableError:'相机正被占用或读不到画面。关闭正在使用相机的页面后重试。',
-      NotFoundError:'未找到相机。检查 DJI 已进入 Webcam 模式并重新选择。'
+      NotAllowedError:tr('请允许 Chrome 访问摄像头，再点开启。'),
+      NotReadableError:tr('相机正被占用或读不到画面。关闭正在使用相机的页面后重试。'),
+      NotFoundError:tr('未找到相机。检查 DJI 已进入 Webcam 模式并重新选择。')
     };
-    cameraStatus(hints[error.name] || '相机启动失败。请重新选择视频输入。',true);
+    cameraStatus(hints[error.name] || tr('相机启动失败。请重新选择视频输入。'),true);
   }
 }
 
@@ -863,9 +973,14 @@ function tick(now) {
   const dt = Math.min(.055,Math.max(0,(now-lastTick)/1000));
   lastTick = now;
   updatePose(now);
+  if (game.phase==='setup') updateCameraButtons();
   const active = !['setup','result'].includes(game.phase);
   trackingPaused = mode==='body' && active && !['home','hit'].includes(game.phase) && now-lastValidAt>TRACKING_GRACE;
-  $('motionStatus').hidden = !trackingPaused;
+  const elbowsMissing=mode==='body' && active && latestPose && latestPose.span===null;
+  $('motionStatus').hidden = !trackingPaused && !elbowsMissing;
+  if (trackingPaused || elbowsMissing) $('motionStatus').textContent=!latestPose
+    ? tr('请后退或调整镜头，让双肩入镜（只有脸无法识别拍翅）')
+    : tr('请让两侧手肘入镜，再上下拍动双臂');
   if (active && !trackingPaused) {
     updateFlight(dt);
     updateView(dt);
@@ -882,7 +997,7 @@ function tick(now) {
 $('cameraButton').onclick = () => {
   if (stream) {
     closeCamera();
-    cameraStatus('摄像头已关闭。');
+    cameraStatus(tr('摄像头已关闭。'));
   } else openCamera();
 };
 device.onchange = () => { if (stream || opening) openCamera(); };
@@ -893,9 +1008,17 @@ $('calibrate').onclick = () => {
   neutral = null;
   $('calibrationProgress').value = 0;
   updateCameraButtons();
-  cameraStatus('在活动区中央正对屏幕，站稳约 1 秒。');
+  cameraStatus(tr('在活动区中央正对屏幕，站稳约 1 秒。'));
 };
-$('bodyStart').onclick = () => beginRound('body',true);
+$('bodyStart').onclick = () => {
+  if (!latestPose || latestPose.span===null || performance.now()-lastValidAt>TRACKING_GRACE) {
+    cameraStatus(tr('请让双肩和两侧手肘入镜，再开始体感。'),true);
+    return;
+  }
+  startBodyLesson();
+};
+$('lessonRetry').onclick=startBodyLesson;
+$('lessonSkip').onclick=()=>beginRound('body',true);
 $('keyboardStart').onclick = () => beginRound('keyboard',true);
 $('again').onclick = () => beginRound(mode);
 $('back').onclick = returnToSetup;
@@ -910,11 +1033,11 @@ $('fullscreen').onclick = async () => {
     if (document.fullscreenElement) await document.exitFullscreen();
     else await document.documentElement.requestFullscreen();
   } catch {
-    $('fullscreen').textContent = '用浏览器全屏';
+    $('fullscreen').textContent = tr('用浏览器全屏');
   }
 };
 document.addEventListener('fullscreenchange',() => {
-  $('fullscreen').textContent = document.fullscreenElement ? '退出全屏' : '全屏';
+  $('fullscreen').textContent = document.fullscreenElement ? tr('退出全屏') : tr('全屏');
 });
 window.addEventListener('keydown',event => {
   const {code} = event;

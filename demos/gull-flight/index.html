@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GIVE ME YOUR FRIES! · 海鸥俯冲</title>
-<link rel="stylesheet" href="flight.css?v=3">
+<link rel="stylesheet" href="flight.css?v=20">
 </head>
 <body>
 <main id="stage" data-phase="setup" aria-label="海鸥俯冲">
@@ -21,6 +21,8 @@
 
   <section id="setup" class="sheet" aria-labelledby="title">
     <div class="setup-copy">
+      <label class="language-choice">语言 / Language <select id="language"><option value="zh-CN">中文</option><option value="en">English</option></select></label>
+      <label class="language-choice">语言 / Language <select id="language"><option value="zh-CN">中文</option><option value="en" lang="en">English</option></select></label>
       <h1 id="title">海鸥俯冲<span>抢薯条，飞回巢。</span></h1>
       <p class="intro">抢走游客的薯条，看他气得脸红！拍翅向上逃跑，飞越货箱、绕开招牌，把薯条带回巢。</p>
       <dl class="controls-guide">
@@ -54,10 +56,22 @@
   </section>
 
   <div id="hud" class="hud" hidden>
+    <div id="dangerGlow" aria-hidden="true" hidden></div>
     <div class="hud-stats">
       <div><span>第 <b id="round">1</b> 趟</span><span>巢内 <b id="score">0</b></span></div>
       <div id="timePanel" class="timer" hidden><small>回巢倒计时</small><strong id="timeText">8.0</strong></div>
-      <div id="load" class="carry" hidden>爪上 <b id="carry">0</b></div>
+      <div id="attackClock" hidden>
+        <div class="attack-label"><strong>游客要出手了</strong><b id="attackSeconds"></b></div>
+        <div class="attack-track"><i id="attackFill"></i></div>
+      </div>
+      <div id="load" class="carry" role="status" aria-atomic="true" hidden>
+        <span class="carry-label">爪上薯条</span>
+        <span class="carry-amount"><b id="carry">0</b><small> / 3</small></span>
+        <span class="carry-slots" aria-hidden="true"><i></i><i></i><i></i></span>
+      </div>
+    </div>
+    <div id="grabImpact" aria-hidden="true" hidden>
+      <span class="grab-stamp"><strong>+1</strong><span>抓到了！</span></span>
     </div>
     <div id="motionStatus" role="status" hidden>请让肩膀和髋部重新入镜</div>
     <div id="reaction" role="status" hidden></div>
@@ -75,7 +89,16 @@
     </div>
   </section>
 </main>
-<script src="scene.js?v=5"></script>
-<script src="flight.js?v=6"></script>
+<aside id="bodyLesson" hidden aria-label="体感动作练习">
+  <small id="lessonProgress"></small>
+  <div id="lessonDemo" aria-hidden="true"></div>
+  <strong id="lessonTitle"></strong>
+  <p id="lessonDetail" role="status"></p>
+  <button id="lessonRetry" type="button">重练</button>
+  <button id="lessonSkip" type="button">跳过练习</button>
+</aside>
+<script src="language.js?v=20"></script>
+<script src="scene.js?v=20"></script>
+<script src="flight.js?v=20"></script>
 </body>
 </html>
