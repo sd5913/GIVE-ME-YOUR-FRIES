@@ -9,6 +9,12 @@ const guideCopy={
  escape:['↑','继续抓或展翅逃跑','Grab more or spread to escape'],
  crates:['↑','拍翅飞越木箱','Flap over the crates'],
  sign:['↔','侧倾绕过路牌','Lean around the sign'],
+ highCrates:['↑','拍翅飞越高箱堆','Flap over the tall crates'],
+ umbrella:['↔','侧倾绕开遮阳伞','Lean around the umbrella'],
+ bunting:['↔','侧倾避开彩旗绳','Lean around the bunting'],
+ restaurant:['↔','绕过餐厅招牌','Dodge the restaurant sign'],
+ cart:['↔','绕开移动餐车','Dodge the moving cart'],
+ gull:['↔','避让竞争海鸥','Dodge the rival gull'],
  home:['⌂','带薯条返回巢穴','Bring your fries home']
 };
 let guideKey='',guideUntil=0,guideShown=new Set();
@@ -18,7 +24,7 @@ function guideCandidate(g){
  if(g.phase==='approach')return isLinedUp(g)?'tuck':'lean';
  if(g.phase==='grab')return g.carry?'escape':'grab';
  if(g.phase==='chase'){
-  const o=g.obstacles.find(o=>!o.passed && o.z>g.z && o.z-g.z<750);
+  const o=upcomingObstacle(g);
   return o?o.kind:'home';
  }
  return '';

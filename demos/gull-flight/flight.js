@@ -241,11 +241,11 @@ function refreshCue() {
     if (game.attack && !game.attack.resolved) {
       cue(tr('向上逃跑！'),key ? tr('空格 / W · 拍翅升空') : tr('展开双臂，拍翅升空'));
     } else {
-      const obstacle = game.obstacles.find(item => !item.passed && item.z>game.z-40);
+      const obstacle = upcomingObstacle(game);
       if (obstacle && obstacle.z-game.z<650) {
-        cue(obstacle.kind==='crates' ? tr('拍翅！飞过货箱') : tr('避开码头招牌'), key
-          ? obstacle.kind==='crates' ? tr('空格 / W · 向上飞') : (obstacle.lane>0 ? tr('A / ← · 飞到左边') : tr('D / → · 飞到右边'))
-          : obstacle.kind==='crates' ? tr('拍动双臂，飞越货箱') : tr('身体侧倾，绕开招牌'));
+        cue(OBSTACLE_TYPES[obstacle.kind].action==='flap' ? tr('拍翅！飞过货箱') : tr('避开码头招牌'), key
+          ? OBSTACLE_TYPES[obstacle.kind].action==='flap' ? tr('空格 / W · 向上飞') : (obstacle.lane>0 ? tr('A / ← · 飞到左边') : tr('D / → · 飞到右边'))
+          : OBSTACLE_TYPES[obstacle.kind].action==='flap' ? tr('拍动双臂，飞越货箱') : tr('身体侧倾，绕开招牌'));
       } else cue(tr('沿栈道飞回巢穴'),key ? tr('空格 / W 拍翅 · A / D 换边') : tr('拍翅飞翔，侧倾绕开障碍'));
     }
   } else if (game.phase === 'hit') {
@@ -423,6 +423,7 @@ function showResult(success, reason = '') {
 
 function updateFlight(dt) {
   game.elapsed += dt;
+  game.routeTime=(game.routeTime||0)+dt;
   game.flash = Math.max(0,game.flash-dt*1.9);
   game.clawSnap = Math.max(0,game.clawSnap-dt);
   keyboardFlap = Math.max(0,keyboardFlap-dt);
@@ -464,12 +465,12 @@ function updateFlight(dt) {
     game.boost = Math.max(0,game.boost-dt);
     const home = NEST_Z-85;
     const previousZ = game.z;
-    game.z = Math.min(home,game.z+(currentLevel===2 ? (game.slow?65:game.boost?145:105) : (game.slow ? 130 : game.boost ? 310 : 235))*dt);
+    game.z = Math.min(home,game.z+flightSpeed(game)*dt);
     if (mode === 'body') game.x = limit(game.x+game.lean*240*dt,-210,210);
     for (const obstacle of game.obstacles) {
       if (obstacle.passed || obstacle.z>game.z || obstacle.z<previousZ) continue;
       obstacle.passed = true;
-      const collided = obstacle.kind==='crates' ? game.climb<=0 : Math.abs(game.x-routeX(obstacle.lane))<85;
+      const collided = obstacleCollision(obstacle,game,game.routeTime||0);
       if (collided) {
         game.carry = Math.max(0,game.carry-1);
         game.flash = .55;

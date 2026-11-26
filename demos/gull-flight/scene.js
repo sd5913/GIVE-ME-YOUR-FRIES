@@ -397,7 +397,7 @@ function drawOwner(game,project,now) {
   const s = scale*1.03;
   const x = fx+side*18*s;
   const y = fy+26*s;
-  const charge = game.attack ? limit(game.attack.elapsed/(ATTACK_NOTICE+ATTACK_CHARGE),0,1) : 0;
+  const charge = game.attack ? limit(game.attack.elapsed/(game.attack.duration ?? ATTACK_NOTICE+ATTACK_CHARGE),0,1) : 0;
   const anger = game.carry ? Math.max(.23,charge) : game.phase==='hit' ? 1 : 0;
   paint.save();
   if (game.phase==='chase') paint.globalAlpha = Math.max(0,1-game.elapsed/.8);
@@ -424,12 +424,12 @@ function drawObstacles(game,project) {
   for (const obstacle of [...(game.obstacles || [])].reverse()) {
     if (obstacle.passed || obstacle.z<game.z+44) continue;
     const distance = obstacle.z-game.z;
-    if (obstacle.kind==='crates') {
+    if (['crates','highCrates'].includes(obstacle.kind)) {
       const [lx,y,s] = project(-215,0,obstacle.z);
       const [rx] = project(215,0,obstacle.z);
       paint.save();
       paint.translate(lx,y);
-      paint.scale((rx-lx)/3,s);
+      paint.scale((rx-lx)/3,s*(obstacle.kind==='highCrates'?1.25:1));
       // Each shipping crate has its own boards, raised frame and corner nails.
       for (let i=0;i<3;i++) {
         paint.save();
@@ -452,17 +452,24 @@ function drawObstacles(game,project) {
         textAt(tr('↑ 拍翅飞越'), (lx+rx)/2,y-155*s,limit(23*s,20,45),'#fff1b9');
       }
     } else {
-      const [x,y,s] = project(routeX(obstacle.lane),0,obstacle.z);
-      rounded(x-6*s,y-260*s,12*s,260*s,2*s,'#567581',ink,2*s);
-      rounded(x-82*s,y-235*s,164*s,205*s,8*s,'#e66b54',ink,3*s);
-      rounded(x-74*s,y-227*s,148*s,189*s,5*s,'#d96751','#ffe3af',2*s);
-      for (const peg of [-65,65]) {
-        for (const h of [-217,-48]) oval(x+peg*s,y+h*s,2.6*s,2.6*s,ink);
+      const [x,y,s] = project(obstacleX(obstacle,game.routeTime||0),0,obstacle.z);
+      paint.save();paint.translate(x,y);paint.scale(s,s);
+      if(obstacle.kind==='sign'){
+        if(signArt.complete && signArt.naturalWidth)paint.drawImage(signArt,-62,262*-1,124,262);
+        else {rounded(-6,-160,12,160,2,'#986138',ink);oval(0,-200,52,52,'#f7d264','#c84032',9);line([[-37,-237],[37,-163]],'#c84032',10);}
+      }else if(obstacle.kind==='umbrella'){
+        line([[0,0],[0,-190]],'#936744',7);shape([[-75,-150],[0,-212],[75,-150]],'#e96650',ink,4);line([[0,-210],[0,-150]],'#ffe4a8',4);
+      }else if(obstacle.kind==='bunting'){
+        line([[-90,0],[-90,-210],[90,-210],[90,0]],'#936744',5);
+        for(let i=-80;i<80;i+=32)shape([[i,-210],[i+26,-210],[i+13,-165]],i%3?'#f7c65c':'#e96650',ink,2);
+      }else if(obstacle.kind==='cart'){
+        rounded(-50,-100,100,80,5,'#57a59c',ink,4);oval(-30,-15,14,14,ink);oval(30,-15,14,14,ink);rounded(-55,-125,110,24,4,'#ffd578',ink,3);textAt('FRIES',0,-55,19,'#fff3d6');
+      }else if(obstacle.kind==='gull'){
+        oval(0,-125,28,18,'#fffefa',ink,3);shape([[-20,-130],[-65,-165],[-48,-122],[-20,-114]],'#edf2ee',ink,3);shape([[20,-130],[65,-165],[48,-122],[20,-114]],'#edf2ee',ink,3);shape([[20,-130],[42,-122],[20,-116]],'#ffd578',ink,2);
+      }else{
+        rounded(-5,-230,10,230,2,'#986138',ink);rounded(-62,-230,124,90,6,'#277b7d',ink,4);textAt('FRIES',0,-180,25,'#ffd578');
       }
-      // A gull silhouette reads even before the lettering comes into range.
-      shape([[-37,-205],[-17,-202],[0,-191],[19,-202],[37,-205],[17,-196],[1,-183],[-18,-196]].map(([dx,dy])=>[x+dx*s,y+dy*s]),'#fff0cb');
-      textAt('NO',x,y-161*s,30*s,'#fff2cf');
-      textAt('GULLS',x,y-125*s,25*s,'#fff2cf');
+      paint.restore();
       if (distance<800) paintArrow(x,y-265*s,-obstacle.lane,limit(s,1,1.8),'#ffe193');
     }
   }
